@@ -122,7 +122,7 @@ function TxForm({ editing }: { editing: Transaction | undefined }) {
               </Field>
             ) : (
               <>
-                <Field label="Estado"><Select value={f.Status} onValueChange={set("Status")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{statuses.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></Field>
+                <Field label="Status"><Select value={f.Status} onValueChange={set("Status")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{statuses.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></Field>
                 <Field label="Categoria *" error={errors.CategoryId}>
                   <Select value={f.CategoryId} onValueChange={set("CategoryId")}><SelectTrigger><SelectValue placeholder="Escolher" /></SelectTrigger><SelectContent>{cats.map((c) => <SelectItem key={c.CategoryId} value={c.CategoryId}>{c.Name}</SelectItem>)}</SelectContent></Select>
                 </Field>
@@ -135,7 +135,7 @@ function TxForm({ editing }: { editing: Transaction | undefined }) {
                 <Field label="Recorrência"><Select value={f.Recurrence} onValueChange={set("Recurrence")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{RECURRENCES.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent></Select></Field>
               </>
             )}
-            {kind === "Transferência" && <Field label="Estado"><Select value={f.Status} onValueChange={set("Status")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{statuses.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></Field>}
+            {kind === "Transferência" && <Field label="Status"><Select value={f.Status} onValueChange={set("Status")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{statuses.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></Field>}
             <Field label="Observações" className="sm:col-span-2"><Textarea value={f.Notes} onChange={(e) => set("Notes")(e.target.value)} maxLength={1000} /></Field>
             {kind === "Despesa" && <Field label="Foto da despesa" className="sm:col-span-2"><ReceiptField value={f.Attachment} onChange={set("Attachment")} txId={txId} disabled={isDemo()} /></Field>}
           </div>

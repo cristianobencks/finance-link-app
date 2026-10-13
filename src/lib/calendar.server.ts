@@ -24,7 +24,7 @@ const eventId = (txId: string) => "mcf" + Array.from(new TextEncoder().encode(tx
 
 const nextDay = (d: string) => { const t = new Date(`${d}T00:00:00Z`); t.setUTCDate(t.getUTCDate() + 1); return t.toISOString().slice(0, 10); };
 
-export async function syncExpenseEvent(tx: { TransactionId: string; Type: string; Status: string; Description: string; DueDate: string; TransactionDate: string; Amount: number }) {
+export async function syncExpenseEvent(tx: { TransactionId: string; Type: string; Status: string; Description: string; DueDate: string; TransactionDate: string; Amount: number; Notes?: string }) {
   const cal = encodeURIComponent(await calendarId());
   const id = eventId(tx.TransactionId);
   const url = `${GW}/calendars/${cal}/events/${id}`;
@@ -35,8 +35,9 @@ export async function syncExpenseEvent(tx: { TransactionId: string; Type: string
   }
   const date = tx.DueDate || tx.TransactionDate;
   const body = {
-    summary: tx.Description,
-    description: `Despesa pendente: ${tx.Amount.toLocaleString("pt-PT", { style: "currency", currency: "EUR" })}`,
+    // Title carries the reminder suffix in the Calendar only; the transaction description stays untouched.
+    summary: `${tx.Description} - Lembrete de pagamento`,
+    description: tx.Notes ?? "",
     start: { date }, end: { date: nextDay(date) }, status: "confirmed",
   };
   let r = await fetch(url, { method: "PUT", headers: headers(), body: JSON.stringify(body) });
