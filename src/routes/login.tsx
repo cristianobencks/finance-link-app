@@ -64,7 +64,7 @@ function Login() {
   async function google() {
     endDemo();
     applyRemember();
-    const r = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
+    const r = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin, extraParams: { prompt: "select_account" } });
     if (r.error) { toast.error("Falha no início de sessão com Google"); return; }
     if (r.redirected) return;
     nav({ to: "/dashboard" });
