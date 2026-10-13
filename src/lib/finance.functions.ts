@@ -193,7 +193,6 @@ export const saveTransfer = createServerFn({ method: "POST" })
 export const deleteTransaction = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ TransactionId: z.string().min(1), TransferGroupId: z.string() }).parse(d))
-  .middleware([])
   .handler(async ({ data, context }) =>
     guarded(context as Ctx, async (sid, isOwner) => {
       const s = await import("./sheets.server");
@@ -201,6 +200,10 @@ export const deleteTransaction = createServerFn({ method: "POST" })
         ? await s.deleteWhere(sid, "Transactions", "TransferGroupId", [data.TransferGroupId])
         : await s.deleteWhere(sid, "Transactions", "TransactionId", [data.TransactionId]);
       if (!n) throw new s.SheetsError("Registo não encontrado na folha de cálculo.", 404);
+      if (isOwner && !data.TransferGroupId) {
+        try { await (await import("./calendar.server")).syncExpenseEvent({ TransactionId: data.TransactionId, Type: "", Status: "", Description: "", DueDate: "", TransactionDate: "", Amount: 0 }); }
+        catch (e) { console.error("Calendar delete failed", e); }
+      }
       return { deleted: n };
     }),
   );
