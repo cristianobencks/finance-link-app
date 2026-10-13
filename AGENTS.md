@@ -14,3 +14,4 @@
 - Columns are resolved by header name and records are upserted by a client-generated stable ID. Why: tolerate column reordering and make retries idempotent (no duplicates).
 - Access: the first signed-in user owns the master spreadsheet (`OwnerUserId` in its Settings tab); other users need their email in master `AllowedEmails` and each gets a separate spreadsheet mapped as `Sheet:<userId>`; server functions resolve the spreadsheet per caller. Why: per-user data isolation without a finance database.
 - Pure finance calculations live in `src/lib/finance.ts` with tests in `src/test/finance.test.ts`. Why: dashboard rules must be verifiable.
+- Expense photos are stored in a Google Drive folder of the connected account (server-only `src/lib/receipts.functions.ts`); transactions keep `drive:<fileId>` in the Attachment column and reads check the file's appProperties.userId. Why: keep all data in the Google account, per-user isolation.
