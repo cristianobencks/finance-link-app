@@ -1,48 +1,48 @@
 import { useEffect, useRef, useState } from "react";
 import { ImagePlus, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
+import { getReceipt, uploadReceipt } from "@/lib/receipts.functions";
 
-const BUCKET = "receipts";
-const MAX = 10 * 1024 * 1024;
-
-export async function receiptUrl(path: string) {
-  const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, 3600);
-  if (error) throw error;
-  return data.signedUrl;
-}
+const MAX = 8 * 1024 * 1024;
+const isTiffUrl = (u: string | null) => !!u && u.startsWith("data:image/tiff");
 
 export function useReceiptUrl(path?: string) {
+  const get = useServerFn(getReceipt);
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
     setUrl(null);
-    if (!path) return;
+    if (!path?.startsWith("drive:")) return;
     let live = true;
-    receiptUrl(path).then((u) => live && setUrl(u)).catch(() => live && setUrl(null));
+    get({ data: { path } }).then((r) => live && setUrl(r.dataUrl)).catch(() => live && setUrl(null));
     return () => { live = false; };
-  }, [path]);
+  }, [path, get]);
   return url;
 }
 
-/** Upload/preview of an expense photo. Value is the private storage path ("" = none). */
+const toBase64 = (f: File) => new Promise<string>((res, rej) => {
+  const r = new FileReader();
+  r.onload = () => res(String(r.result).split(",")[1] ?? "");
+  r.onerror = () => rej(new Error("Não foi possível ler a imagem."));
+  r.readAsDataURL(f);
+});
+
+/** Upload/preview of an expense photo stored in Google Drive. Value is "drive:<fileId>" ("" = none). */
 export function ReceiptField({ value, onChange, txId, disabled }: { value: string; onChange: (v: string) => void; txId: string; disabled?: boolean }) {
   const input = useRef<HTMLInputElement>(null);
+  const upload = useServerFn(uploadReceipt);
   const [busy, setBusy] = useState(false);
   const url = useReceiptUrl(value || undefined);
-  const isTiff = /\.tiff?$/i.test(value);
+  const isTiff = isTiffUrl(url);
 
   async function pick(file: File) {
     if (!file.type.startsWith("image/")) { toast.error("Escolha um ficheiro de imagem (JPG, PNG, TIFF…)."); return; }
-    if (file.size > MAX) { toast.error("A imagem não pode ter mais de 10 MB."); return; }
+    if (file.size > MAX) { toast.error("A imagem não pode ter mais de 8 MB."); return; }
     setBusy(true);
     try {
-      const { data: u } = await supabase.auth.getUser();
-      if (!u.user) throw new Error("Sessão expirada.");
       const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
-      const path = `${u.user.id}/${txId}-${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from(BUCKET).upload(path, file, { contentType: file.type, upsert: false });
-      if (error) throw error;
+      const { path } = await upload({ data: { name: `${txId}-${Date.now()}.${ext}`, mime: file.type, base64: await toBase64(file) } });
       onChange(path);
       toast.success("Foto anexada. Guarde a movimentação para a associar.");
     } catch (e) {
