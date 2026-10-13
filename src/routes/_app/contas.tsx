@@ -69,7 +69,7 @@ function Accounts() {
           {draft && <div className="space-y-4">
             <div className="space-y-1.5"><Label>Nome</Label><Input value={draft.Name ?? ""} onChange={(e) => setDraft({ ...draft, Name: e.target.value })} maxLength={60} /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5"><Label>Tipo</Label><Select value={draft.AccountType} onValueChange={(v) => setDraft({ ...draft, AccountType: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{ACCOUNT_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent></Select></div>
+              <div className="space-y-1.5"><Label>Tipo</Label><Select value={draft.AccountType ?? "Conta bancária"} onValueChange={(v) => setDraft({ ...draft, AccountType: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{ACCOUNT_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent></Select></div>
               <div className="space-y-1.5"><Label>Instituição (opcional)</Label><Input value={draft.Institution ?? ""} onChange={(e) => setDraft({ ...draft, Institution: e.target.value })} maxLength={60} /></div>
               <div className="space-y-1.5"><Label>Saldo inicial (€)</Label><Input inputMode="decimal" value={draft.OpeningBalance} onChange={(e) => setDraft({ ...draft, OpeningBalance: e.target.value })} /></div>
               <div className="space-y-1.5"><Label>Data do saldo inicial</Label><Input type="date" value={draft.OpeningDate ?? ""} onChange={(e) => setDraft({ ...draft, OpeningDate: e.target.value })} /></div>

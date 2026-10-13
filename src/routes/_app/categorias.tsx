@@ -50,7 +50,7 @@ function Cats() {
 
   return (
     <>
-      <PageHeader title="Categorias e subcategorias" subtitle="Classificações independentes para receitas e despesas." actions={<Button onClick={() => setCat({ Type: type, Color: "#3b82f6", Icon: "Tag", Active: true, CategoryId: undefined })}><Plus className="h-4 w-4" />Nova categoria</Button>} />
+      <PageHeader title="Categorias e subcategorias" subtitle="Classificações independentes para receitas e despesas." actions={<Button onClick={() => setCat({ Type: type, Color: "#3b82f6", Icon: "Tag", Active: true })}><Plus className="h-4 w-4" />Nova categoria</Button>} />
       <div className="mb-4 flex flex-wrap gap-2">
         <div className="inline-flex rounded-xl bg-muted p-1">{(["Despesa", "Receita"] as const).map((t) => <button key={t} onClick={() => setType(t)} className={cn("rounded-lg px-4 py-1.5 text-sm font-medium text-muted-foreground", type === t && "bg-card shadow-card", type === t && (t === "Receita" ? "text-income" : "text-expense"))}>{t}s</button>)}</div>
         <Input placeholder="Pesquisar categoria…" value={q} onChange={(e) => setQ(e.target.value)} className="w-56 bg-card" />
@@ -78,10 +78,10 @@ function Cats() {
           {cat && <div className="space-y-4">
             <div className="space-y-1.5"><Label>Nome</Label><Input value={cat.Name ?? ""} onChange={(e) => setCat({ ...cat, Name: e.target.value })} maxLength={60} /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5"><Label>Tipo</Label><Select value={cat.Type} onValueChange={(v) => setCat({ ...cat, Type: v as "Receita" })} disabled={!!cat.CategoryId}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Despesa">Despesa</SelectItem><SelectItem value="Receita">Receita</SelectItem></SelectContent></Select></div>
+              <div className="space-y-1.5"><Label>Tipo</Label><Select value={cat.Type ?? "Despesa"} onValueChange={(v) => setCat({ ...cat, Type: v as "Receita" })} disabled={!!cat.CategoryId}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Despesa">Despesa</SelectItem><SelectItem value="Receita">Receita</SelectItem></SelectContent></Select></div>
               <div className="space-y-1.5"><Label>Cor</Label><Input type="color" value={cat.Color} onChange={(e) => setCat({ ...cat, Color: e.target.value })} className="h-10 p-1" /></div>
             </div>
-            <div className="space-y-1.5"><Label>Ícone</Label><Select value={cat.Icon} onValueChange={(v) => setCat({ ...cat, Icon: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{ICONS.map((i) => <SelectItem key={i} value={i}>{i}</SelectItem>)}</SelectContent></Select></div>
+            <div className="space-y-1.5"><Label>Ícone</Label><Select value={cat.Icon ?? "Tag"} onValueChange={(v) => setCat({ ...cat, Icon: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{ICONS.map((i) => <SelectItem key={i} value={i}>{i}</SelectItem>)}</SelectContent></Select></div>
             <div className="flex items-center gap-2"><Switch checked={cat.Active ?? true} onCheckedChange={(v) => setCat({ ...cat, Active: v })} /><Label>Ativa</Label></div>
           </div>}
           <DialogFooter><Button onClick={submitCat} disabled={saveC.pending || !cat?.Name?.trim()}>{saveC.pending ? "A gravar…" : "Guardar"}</Button></DialogFooter>
@@ -92,7 +92,7 @@ function Cats() {
         <DialogContent><DialogHeader><DialogTitle>{sub?.SubcategoryId ? "Editar subcategoria" : "Nova subcategoria"}</DialogTitle></DialogHeader>
           {sub && <div className="space-y-4">
             <div className="space-y-1.5"><Label>Nome</Label><Input value={sub.Name ?? ""} onChange={(e) => setSub({ ...sub, Name: e.target.value })} maxLength={60} /></div>
-            <div className="space-y-1.5"><Label>Categoria</Label><Select value={sub.CategoryId} onValueChange={(v) => setSub({ ...sub, CategoryId: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{d.categories.map((c) => <SelectItem key={c.CategoryId} value={c.CategoryId}>{c.Name} ({c.Type})</SelectItem>)}</SelectContent></Select></div>
+            <div className="space-y-1.5"><Label>Categoria</Label><Select value={sub.CategoryId ?? ""} onValueChange={(v) => setSub({ ...sub, CategoryId: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{d.categories.map((c) => <SelectItem key={c.CategoryId} value={c.CategoryId}>{c.Name} ({c.Type})</SelectItem>)}</SelectContent></Select></div>
             <div className="flex items-center gap-2"><Switch checked={sub.Active ?? true} onCheckedChange={(v) => setSub({ ...sub, Active: v })} /><Label>Ativa</Label></div>
           </div>}
           <DialogFooter><Button onClick={submitSub} disabled={saveS.pending || !sub?.Name?.trim()}>{saveS.pending ? "A gravar…" : "Guardar"}</Button></DialogFooter>

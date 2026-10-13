@@ -36,7 +36,7 @@ function NewTx() {
   return <TxForm key={id ?? "new"} editing={editing} />;
 }
 
-function TxForm({ editing }: { editing?: Transaction }) {
+function TxForm({ editing }: { editing: Transaction | undefined }) {
   const d = useFinance()!;
   const nav = useNavigate();
   const tx = useMutate(useServerFn(saveTransaction));
@@ -49,7 +49,7 @@ function TxForm({ editing }: { editing?: Transaction }) {
     Description: editing?.Description ?? "", Amount: editing ? String(editing.Amount).replace(".", ",") : "",
     TransactionDate: editing?.TransactionDate ?? todayLisbon(), DueDate: editing?.DueDate ?? "",
     CategoryId: editing?.CategoryId ?? "", SubcategoryId: editing?.SubcategoryId ?? "", AccountId: editing?.AccountId ?? "",
-    ToAccountId: "", PaymentMethod: editing?.PaymentMethod ?? "", Status: editing?.Status ?? "Pago",
+    ToAccountId: "", PaymentMethod: editing?.PaymentMethod ?? "", Status: (editing?.Status ?? "Pago") as string,
     Nature: editing?.Nature ?? "Variável", Recurrence: editing?.Recurrence ?? "Não recorrente", Notes: editing?.Notes ?? "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
