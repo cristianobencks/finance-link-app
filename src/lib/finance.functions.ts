@@ -18,7 +18,15 @@ async function guarded<T>(userId: string, fn: () => Promise<T>, allowClaim = fal
 }
 
 /** Private app: the first signed-in user claims ownership (stored in Settings); others are refused. */
+let knownOwner: string | null = null;
 async function ensureOwner(userId: string, allowClaim: boolean) {
+  if (knownOwner) {
+    if (knownOwner !== userId) {
+      const s = await import("./sheets.server");
+      throw new s.SheetsError("Esta conta não tem acesso a esta aplicação privada.", 403);
+    }
+    return;
+  }
   const s = await import("./sheets.server");
   let all;
   try {
@@ -30,15 +38,17 @@ async function ensureOwner(userId: string, allowClaim: boolean) {
   const owner = all.Settings.rows.find((r) => r.obj.SettingKey === "OwnerUserId")?.obj.SettingValue;
   if (!owner) {
     await s.upsert("Settings", { SettingKey: "OwnerUserId", SettingValue: userId });
+    knownOwner = userId;
     return;
   }
+  knownOwner = owner;
   if (owner !== userId) throw new s.SheetsError("Esta conta não tem acesso a esta aplicação privada.", 403);
 }
 
 const num = (v: string | undefined = "") => (v === "" ? 0 : Number(String(v).replace(",", ".")) || 0);
 const bool = (v: string | undefined = "") => v === "" || v.toUpperCase() === "TRUE";
 
-export const getFinanceData = createServerFn({ method: "GET" })
+export const getFinanceData = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<Result<FinanceData & { spreadsheetUrl: string }>> => {
     return guarded(context.userId, async () => {
