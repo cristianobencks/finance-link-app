@@ -8,7 +8,7 @@ export const FINANCE_KEY = ["finance"];
 
 export function useFinanceQuery() {
   const fn = useServerFn(getFinanceData);
-  return useQuery({ queryKey: FINANCE_KEY, queryFn: () => fn(), staleTime: 30_000, retry: 1 });
+  return useQuery({ queryKey: FINANCE_KEY, queryFn: () => fn(), staleTime: 15_000, retry: 1, refetchOnWindowFocus: true, refetchInterval: 60_000 });
 }
 
 /** Returns loaded data (only valid when the sheet answered OK). */
@@ -39,7 +39,7 @@ export function useMutate<I>(fn: (args: { data: I }) => Promise<Res>) {
         return false;
       }
       toast.success(successMsg);
-      await qc.invalidateQueries({ queryKey: FINANCE_KEY });
+      await qc.refetchQueries({ queryKey: FINANCE_KEY, type: "all" });
       return true;
     } catch (e) {
       const msg = e instanceof Error && e.message.includes("Unauthorized") ? "Sessão expirada. Inicie sessão novamente." : "Falha de comunicação. Os dados não foram guardados — tente novamente.";
