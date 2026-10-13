@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { demo } from "@/lib/demo";
 import { useMemo, useState } from "react";
 import { ArrowDownUp, Download, Eye, Pencil, Plus, Trash2 } from "lucide-react";
 import { useFinance, useMutate } from "@/hooks/use-finance";
@@ -23,7 +24,7 @@ const PAGE = 15;
 
 function List() {
   const d = useFinance();
-  const del = useMutate(useServerFn(deleteTransaction));
+  const del = useMutate(useServerFn(deleteTransaction), demo.deleteTransaction);
   const [q, setQ] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
