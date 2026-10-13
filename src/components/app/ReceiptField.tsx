@@ -42,7 +42,11 @@ export function ReceiptField({ value, onChange, txId, disabled }: { value: strin
     setBusy(true);
     try {
       const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
-      const { path } = await upload({ data: { name: `${txId}-${Date.now()}.${ext}`, mime: file.type, base64: await toBase64(file) } });
+      // File name: despesa-AAAA-MM-DD-HHMMSS (Europe/Lisbon, moment of upload).
+      const parts = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Lisbon", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).formatToParts(new Date());
+      const p = (t: string) => parts.find((x) => x.type === t)?.value ?? "";
+      const name = `despesa-${p("year")}-${p("month")}-${p("day")}-${p("hour")}${p("minute")}${p("second")}.${ext}`;
+      const { path } = await upload({ data: { name, mime: file.type, base64: await toBase64(file) } });
       onChange(path);
       toast.success("Foto anexada. Guarde a movimentação para a associar.");
     } catch (e) {
