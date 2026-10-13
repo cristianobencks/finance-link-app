@@ -73,7 +73,7 @@ function AppLayout() {
         <button onClick={signOut} className="m-3 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-sidebar-accent"><LogOut className="h-4 w-4" />Terminar sessão</button>
       </aside>
       <header className="sticky top-0 z-20 flex items-center justify-between border-b bg-card/90 px-4 py-3 backdrop-blur lg:hidden">
-        <span className="flex items-center gap-2 font-display text-sm font-semibold"><Wallet className="h-4 w-4 text-primary" />Meu Controle Financeiro</span>
+        <span className="flex items-center gap-2 font-display text-sm font-semibold"><Wallet className="h-4 w-4 text-primary" />EvoluaX</span>
         <button onClick={signOut} aria-label="Terminar sessão"><LogOut className="h-4 w-4 text-muted-foreground" /></button>
       </header>
       <main className="px-4 pb-28 pt-6 lg:ml-64 lg:px-10 lg:pb-10 lg:pt-10">
