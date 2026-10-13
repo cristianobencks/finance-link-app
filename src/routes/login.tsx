@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Wallet, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
+import { startDemo, endDemo } from "@/lib/demo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,6 +41,7 @@ function Login() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
+    endDemo();
     applyRemember();
     try {
       if (mode === "in") {
@@ -57,7 +59,10 @@ function Login() {
     }
   }
 
+  function demoLogin() { startDemo(); nav({ to: "/dashboard" }); }
+
   async function google() {
+    endDemo();
     applyRemember();
     const r = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
     if (r.error) { toast.error("Falha no início de sessão com Google"); return; }

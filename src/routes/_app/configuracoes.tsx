@@ -20,7 +20,7 @@ function SettingsPage() {
       <div className="grid gap-4 xl:grid-cols-2">
         <Panel title="Google Sheets">
           <p className="text-sm text-muted-foreground">Estado: <span className="font-medium text-income">Ligado</span> · {d?.transactions.length ?? 0} movimentações, {d?.categories.length ?? 0} categorias, {d?.accounts.length ?? 0} contas.</p>
-          {d && <Button asChild variant="outline" className="mt-4"><a href={d.spreadsheetUrl} target="_blank" rel="noreferrer"><ExternalLink className="h-4 w-4" />Abrir folha de cálculo</a></Button>}
+          {d && d.spreadsheetUrl && <Button asChild variant="outline" className="mt-4"><a href={d.spreadsheetUrl} target="_blank" rel="noreferrer"><ExternalLink className="h-4 w-4" />Abrir folha de cálculo</a></Button>}
         </Panel>
         <SetupPanel />
         <Panel title="Estrutura esperada" className="xl:col-span-2">
