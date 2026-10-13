@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Wallet, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
+import { startDemo, endDemo } from "@/lib/demo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,6 +41,7 @@ function Login() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
+    endDemo();
     applyRemember();
     try {
       if (mode === "in") {
@@ -57,7 +59,10 @@ function Login() {
     }
   }
 
+  function demoLogin() { startDemo(); nav({ to: "/dashboard" }); }
+
   async function google() {
+    endDemo();
     applyRemember();
     const r = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
     if (r.error) { toast.error("Falha no início de sessão com Google"); return; }
@@ -86,6 +91,7 @@ function Login() {
         </label>
         <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground"><div className="h-px flex-1 bg-border" />ou<div className="h-px flex-1 bg-border" /></div>
         <Button variant="outline" className="w-full" onClick={google}>Continuar com Google</Button>
+        <Button variant="ghost" className="mt-2 w-full" onClick={demoLogin}>Explorar demonstração (sem conta)</Button>
         <button className="mt-5 w-full text-center text-sm text-muted-foreground hover:text-foreground" onClick={() => setMode(mode === "in" ? "up" : "in")}>
           {mode === "in" ? "Ainda não tem conta? Criar conta" : "Já tem conta? Entrar"}
         </button>

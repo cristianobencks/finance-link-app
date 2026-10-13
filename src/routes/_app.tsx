@@ -8,10 +8,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useFinanceQuery } from "@/hooks/use-finance";
 import { SetupPanel } from "@/components/app/SetupPanel";
 import { cn } from "@/lib/utils";
+import { isDemo, endDemo } from "@/lib/demo";
 
 export const Route = createFileRoute("/_app")({
   ssr: false,
   beforeLoad: async () => {
+    if (isDemo()) return;
     if (localStorage.getItem("mcf-ephemeral") && !sessionStorage.getItem("mcf-alive")) {
       await supabase.auth.signOut();
       localStorage.removeItem("mcf-ephemeral");
@@ -46,6 +48,8 @@ function AppLayout() {
     return () => data.subscription.unsubscribe();
   }, [nav, qc]);
 
+  const demoMode = isDemo();
+  const signOut = () => { if (demoMode) { endDemo(); qc.clear(); nav({ to: "/login" }); } else supabase.auth.signOut(); };
   let body: React.ReactNode;
   if (q.isLoading) body = <div className="flex h-64 items-center justify-center text-muted-foreground"><Loader2 className="mr-2 h-5 w-5 animate-spin" />A carregar dados do Google Sheets…</div>;
   else if (q.isError) body = <SetupPanel error="Não foi possível contactar o servidor. Verifique a ligação e tente novamente." />;
@@ -66,13 +70,16 @@ function AppLayout() {
             </Link>
           ))}
         </nav>
-        <button onClick={() => supabase.auth.signOut()} className="m-3 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-sidebar-accent"><LogOut className="h-4 w-4" />Terminar sessão</button>
+        <button onClick={signOut} className="m-3 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-sidebar-accent"><LogOut className="h-4 w-4" />Terminar sessão</button>
       </aside>
       <header className="sticky top-0 z-20 flex items-center justify-between border-b bg-card/90 px-4 py-3 backdrop-blur lg:hidden">
         <span className="flex items-center gap-2 font-display text-sm font-semibold"><Wallet className="h-4 w-4 text-primary" />Meu Controle Financeiro</span>
-        <button onClick={() => supabase.auth.signOut()} aria-label="Terminar sessão"><LogOut className="h-4 w-4 text-muted-foreground" /></button>
+        <button onClick={signOut} aria-label="Terminar sessão"><LogOut className="h-4 w-4 text-muted-foreground" /></button>
       </header>
-      <main className="px-4 pb-28 pt-6 lg:ml-64 lg:px-10 lg:pb-10 lg:pt-10">{body}</main>
+      <main className="px-4 pb-28 pt-6 lg:ml-64 lg:px-10 lg:pb-10 lg:pt-10">
+        {demoMode && <div className="mb-6 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-warning/40 bg-warning-soft px-4 py-3 text-sm"><span><strong>Modo demonstração</strong> — dados fictícios. Nada é guardado no Google Sheets e tudo é apagado ao sair ou atualizar a página.</span><button onClick={signOut} className="font-medium text-primary underline">Sair da demonstração</button></div>}
+        {body}
+      </main>
       <nav className="fixed inset-x-0 bottom-0 z-20 flex overflow-x-auto border-t bg-card lg:hidden">
         {NAV.map((n) => (
           <Link key={n.to} to={n.to} className={cn("flex min-w-[4.5rem] flex-1 flex-col items-center gap-1 px-2 py-2 text-[10px] text-muted-foreground", path.startsWith(n.to) && "text-primary")}>

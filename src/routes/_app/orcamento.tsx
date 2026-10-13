@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { demo } from "@/lib/demo";
 import { useState } from "react";
 import { Plus, Trash2, Pencil } from "lucide-react";
 import { useFinance, useMutate } from "@/hooks/use-finance";
@@ -20,8 +21,8 @@ export const Route = createFileRoute("/_app/orcamento")({
 
 function Budgets() {
   const d = useFinance();
-  const save = useMutate(useServerFn(saveBudget));
-  const del = useMutate(useServerFn(deleteBudget));
+  const save = useMutate(useServerFn(saveBudget), demo.saveBudget);
+  const del = useMutate(useServerFn(deleteBudget), demo.deleteBudget);
   const [month, setMonth] = useState(ym(todayLisbon()));
   const [draft, setDraft] = useState<{ BudgetId?: string; CategoryId: string; BudgetAmount: string; Notes: string; YearMonth: string } | null>(null);
   const [err, setErr] = useState("");

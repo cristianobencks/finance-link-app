@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { demo } from "@/lib/demo";
 import { useState } from "react";
 import { Landmark, Pencil, Plus } from "lucide-react";
 import { useFinance, useMutate } from "@/hooks/use-finance";
@@ -24,7 +25,7 @@ type Draft = Partial<Omit<Account, "OpeningBalance">> & { OpeningBalance: string
 
 function Accounts() {
   const d = useFinance();
-  const save = useMutate(useServerFn(saveAccount));
+  const save = useMutate(useServerFn(saveAccount), demo.saveAccount);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [err, setErr] = useState("");
   if (!d) return null;

@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { demo } from "@/lib/demo";
 import { useState } from "react";
 import { Pencil, Plus } from "lucide-react";
 import { useFinance, useMutate } from "@/hooks/use-finance";
@@ -24,8 +25,8 @@ const ICONS = ["Tag", "Home", "UtensilsCrossed", "Car", "HeartPulse", "Users", "
 
 function Cats() {
   const d = useFinance();
-  const saveC = useMutate(useServerFn(saveCategory));
-  const saveS = useMutate(useServerFn(saveSubcategory));
+  const saveC = useMutate(useServerFn(saveCategory), demo.saveCategory);
+  const saveS = useMutate(useServerFn(saveSubcategory), demo.saveSubcategory);
   const [type, setType] = useState<"Despesa" | "Receita">("Despesa");
   const [q, setQ] = useState("");
   const [order, setOrder] = useState<"name" | "subs">("name");

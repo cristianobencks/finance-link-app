@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { demo } from "@/lib/demo";
 import { useMemo, useState } from "react";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
@@ -39,8 +40,8 @@ function NewTx() {
 function TxForm({ editing }: { editing: Transaction | undefined }) {
   const d = useFinance()!;
   const nav = useNavigate();
-  const tx = useMutate(useServerFn(saveTransaction));
-  const tr = useMutate(useServerFn(saveTransfer));
+  const tx = useMutate(useServerFn(saveTransaction), demo.saveTransaction);
+  const tr = useMutate(useServerFn(saveTransfer), demo.saveTransfer);
   const [kind, setKind] = useState<Kind>(editing?.Type ?? "Despesa");
   // Stable ID per form: resubmitting after a failure updates the same record instead of duplicating it.
   const [txId] = useState(() => editing?.TransactionId ?? newId("tx"));
