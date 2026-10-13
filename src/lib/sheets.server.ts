@@ -74,9 +74,19 @@ function toTable(values: string[][] | undefined): Table {
   return { headers, rows };
 }
 
+// Columns added after launch: auto-created on first write instead of blocking older sheets.
+const OPTIONAL_COLS = new Set<string>(["Attachment"]);
+
 function validate(name: SheetName, t: Table) {
-  const missing = SHEETS[name].filter((h) => !t.headers.includes(h));
+  const missing = SHEETS[name].filter((h) => !t.headers.includes(h) && !OPTIONAL_COLS.has(h));
   if (missing.length) throw new SheetsError(`A aba ${name} não tem as colunas: ${missing.join(", ")}. Execute a configuração inicial.`, 409);
+}
+
+async function ensureHeaders(sid: string, name: SheetName, t: Table, obj: Record<string, unknown>) {
+  const add = (SHEETS[name] as readonly string[]).filter((h) => !t.headers.includes(h) && obj[h] !== undefined && obj[h] !== "");
+  if (!add.length) return;
+  await call(sid, `/values/${name}!${colLetter(t.headers.length)}1?valueInputOption=RAW`, { method: "PUT", body: JSON.stringify({ values: [add] }) });
+  t.headers.push(...add);
 }
 
 export async function readAll(sid: string): Promise<Record<SheetName, Table>> {
@@ -109,6 +119,7 @@ const toRow = (headers: string[], obj: Record<string, unknown>) =>
  */
 export async function upsert(sid: string, name: SheetName, obj: Record<string, unknown>, expectedUpdatedAt?: string) {
   const t = await readTable(sid, name);
+  await ensureHeaders(sid, name, t, obj);
   const idCol = ID_COLUMN[name];
   const id = String(obj[idCol]);
   const existing = t.rows.find((r) => r.obj[idCol] === id);

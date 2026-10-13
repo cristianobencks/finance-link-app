@@ -137,6 +137,7 @@ const txSchema = z.object({
   Nature: z.enum(NATURES),
   Recurrence: z.enum(RECURRENCES),
   Notes: z.string().max(1000),
+  Attachment: z.string().max(300).regex(/^([0-9a-f-]{36}\/[\w.-]+)?$/).optional(),
   expectedUpdatedAt: z.string().optional(),
 });
 
