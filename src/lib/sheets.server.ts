@@ -143,7 +143,7 @@ async function sheetIds() {
 /** Delete rows whose column `col` equals one of `values`. Deletes bottom-up so indexes stay valid. */
 export async function deleteWhere(name: SheetName, col: string, values: string[]) {
   const t = await readTable(name);
-  const rows = t.rows.filter((r) => values.includes(r.obj[col])).map((r) => r.row).sort((a, b) => b - a);
+  const rows = t.rows.filter((r) => values.includes(r.obj[col] ?? "")).map((r) => r.row).sort((a, b) => b - a);
   if (!rows.length) return 0;
   const ids = await sheetIds();
   await call(`:batchUpdate`, {

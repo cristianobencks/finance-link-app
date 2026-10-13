@@ -23,7 +23,7 @@ export const Route = createFileRoute("/_app/nova")({
 
 type Kind = "Receita" | "Despesa" | "Transferência";
 
-function Field({ label, error, children, className }: { label: string; error?: string; children: React.ReactNode; className?: string }) {
+function Field({ label, error, children, className }: { label: string; error?: string | undefined; children: React.ReactNode; className?: string }) {
   return <div className={cn("space-y-1.5", className)}><Label>{label}</Label>{children}{error && <p className="text-xs text-destructive">{error}</p>}</div>;
 }
 
@@ -52,7 +52,8 @@ function TxForm({ editing }: { editing: Transaction | undefined }) {
     ToAccountId: "", PaymentMethod: editing?.PaymentMethod ?? "", Status: (editing?.Status ?? "Pago") as string,
     Nature: editing?.Nature ?? "Variável", Recurrence: editing?.Recurrence ?? "Não recorrente", Notes: editing?.Notes ?? "",
   });
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  type ErrKey = "Description" | "Amount" | "TransactionDate" | "AccountId" | "ToAccountId" | "CategoryId";
+  const [errors, setErrors] = useState<Partial<Record<ErrKey, string>>>({});
   const set = (k: keyof typeof f) => (v: string) => setF((p) => ({ ...p, [k]: v, ...(k === "CategoryId" ? { SubcategoryId: "" } : {}) }));
 
   const cats = useMemo(() => d.categories.filter((c) => c.Type === kind && (c.Active || c.CategoryId === f.CategoryId)).sort((a, b) => a.Name.localeCompare(b.Name)), [d, kind, f.CategoryId]);
@@ -69,7 +70,7 @@ function TxForm({ editing }: { editing: Transaction | undefined }) {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const amount = Number(f.Amount.replace(/\s/g, "").replace(",", "."));
-    const err: Record<string, string> = {};
+    const err: Partial<Record<ErrKey, string>> = {};
     if (!f.Description.trim()) err.Description = "Indique uma descrição.";
     if (!Number.isFinite(amount) || amount <= 0) err.Amount = "O valor deve ser superior a zero.";
     if (!f.TransactionDate) err.TransactionDate = "Indique a data.";
