@@ -64,7 +64,7 @@ function Reports() {
 
   return (
     <>
-      <PageHeader title="Relatórios" subtitle={`${fmtMonth(months[0])} – ${fmtMonth(to)}`} actions={<Button variant="outline" onClick={exportCSV}><Download className="h-4 w-4" />Exportar CSV</Button>} />
+      <PageHeader title="Relatórios" subtitle={`${fmtMonth(months[0] ?? to)} – ${fmtMonth(to)}`} actions={<Button variant="outline" onClick={exportCSV}><Download className="h-4 w-4" />Exportar CSV</Button>} />
       <div className="mb-6 flex flex-wrap gap-2">
         <Input type="month" value={to} onChange={(e) => e.target.value && setTo(e.target.value)} className="w-44 bg-card" />
         <Select value={span} onValueChange={setSpan}><SelectTrigger className="w-36 bg-card"><SelectValue /></SelectTrigger><SelectContent>{["3", "6", "12", "24"].map((s) => <SelectItem key={s} value={s}>Últimos {s} meses</SelectItem>)}</SelectContent></Select>
@@ -84,7 +84,7 @@ function Reports() {
         <Panel title="Despesas por categoria"><RankTable rows={byCat} /></Panel>
         <Panel title="Despesas por subcategoria"><RankTable rows={bySub} /></Panel>
         <Panel title="Comparação entre períodos">
-          {half === 0 ? <Empty>Escolha um período maior.</Empty> : <Table><TableHeader><TableRow><TableHead /><TableHead className="text-right">{fmtMonth(periodA[0].m)}–{fmtMonth(periodA.at(-1)!.m)}</TableHead><TableHead className="text-right">{fmtMonth(periodB[0].m)}–{fmtMonth(periodB.at(-1)!.m)}</TableHead></TableRow></TableHeader>
+          {half === 0 ? <Empty>Escolha um período maior.</Empty> : <Table><TableHeader><TableRow><TableHead /><TableHead className="text-right">{fmtMonth(periodA[0]!.m)}–{fmtMonth(periodA.at(-1)!.m)}</TableHead><TableHead className="text-right">{fmtMonth(periodB[0]!.m)}–{fmtMonth(periodB.at(-1)!.m)}</TableHead></TableRow></TableHeader>
             <TableBody>{(["Receitas", "Despesas", "Resultado"] as const).map((k) => <TableRow key={k}><TableCell>{k}</TableCell><TableCell className="tabular text-right">{fmtEUR(sum(periodA, k))}</TableCell><TableCell className="tabular text-right">{fmtEUR(sum(periodB, k))}</TableCell></TableRow>)}</TableBody></Table>}
         </Panel>
         <Panel title="Pendentes e vencidas">

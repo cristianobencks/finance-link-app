@@ -34,11 +34,11 @@ function Login() {
     try {
       if (mode === "in") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) return toast.error("Não foi possível entrar", { description: error.message });
+        if (error) { toast.error("Não foi possível entrar", { description: error.message }); return; }
         nav({ to: "/dashboard" });
       } else {
         const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin } });
-        if (error) return toast.error("Não foi possível criar a conta", { description: error.message });
+        if (error) { toast.error("Não foi possível criar a conta", { description: error.message }); return; }
         if (data.session) nav({ to: "/dashboard" });
         else toast.success("Conta criada", { description: "Confirme o email que lhe enviámos e depois entre." });
       }
@@ -49,7 +49,7 @@ function Login() {
 
   async function google() {
     const r = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
-    if (r.error) return toast.error("Falha no início de sessão com Google");
+    if (r.error) { toast.error("Falha no início de sessão com Google"); return; }
     if (r.redirected) return;
     nav({ to: "/dashboard" });
   }
