@@ -5,11 +5,13 @@ import { TX_TYPES, TX_STATUS, NATURES, RECURRENCES, ACCOUNT_TYPES, type FinanceD
 
 type Result<T> = { ok: true; data: T } | { ok: false; error: string; code: number };
 
-async function guarded<T>(userId: string, fn: () => Promise<T>, allowClaim = false): Promise<Result<T>> {
+type Ctx = { userId: string; claims: { email?: string } & Record<string, unknown> };
+
+async function guarded<T>(ctx: Ctx, fn: (sid: string, isOwner: boolean) => Promise<T>): Promise<Result<T>> {
   const s = await import("./sheets.server");
   try {
-    await ensureOwner(userId, allowClaim);
-    return { ok: true, data: await fn() };
+    const a = await resolveAccess(ctx);
+    return { ok: true, data: await fn(a.sid, a.isOwner) };
   } catch (e) {
     if (e instanceof s.SheetsError) return { ok: false, error: e.message, code: e.status };
     console.error("finance op failed", e instanceof Error ? e.message : "unknown");
@@ -17,32 +19,50 @@ async function guarded<T>(userId: string, fn: () => Promise<T>, allowClaim = fal
   }
 }
 
-/** Private app: the first signed-in user claims ownership (stored in Settings); others are refused. */
-let knownOwner: string | null = null;
-async function ensureOwner(userId: string, allowClaim: boolean) {
-  if (knownOwner) {
-    if (knownOwner !== userId) {
-      const s = await import("./sheets.server");
-      throw new s.SheetsError("Esta conta não tem acesso a esta aplicação privada.", 403);
-    }
-    return;
-  }
+/**
+ * The first signed-in user owns the master spreadsheet. Other users must have their email
+ * in AllowedEmails (master Settings); each gets their own spreadsheet, mapped as Sheet:<userId>.
+ */
+const accessCache = new Map<string, { sid: string; isOwner: boolean; at: number }>();
+const normEmails = (v: string) => v.split(/[\s,;]+/).map((e) => e.trim().toLowerCase()).filter(Boolean);
+
+async function resolveAccess(ctx: Ctx) {
+  const hit = accessCache.get(ctx.userId);
+  if (hit && Date.now() - hit.at < 60_000) return hit;
   const s = await import("./sheets.server");
-  let all;
+  const master = s.masterSpreadsheetId();
+  let settings;
   try {
-    all = await s.readAll();
+    settings = await s.readTable(master, "Settings");
   } catch (e) {
-    if (allowClaim && e instanceof s.SheetsError && e.status === 409) return; // not initialised yet
-    throw e;
+    if (e instanceof s.SheetsError && e.status === 409) {
+      await s.initialize(master);
+      settings = await s.readTable(master, "Settings");
+    } else throw e;
   }
-  const owner = all.Settings.rows.find((r) => r.obj.SettingKey === "OwnerUserId")?.obj.SettingValue;
+  const get = (k: string) => settings.rows.find((r) => r.obj.SettingKey === k)?.obj.SettingValue ?? "";
+  let owner = get("OwnerUserId");
   if (!owner) {
-    await s.upsert("Settings", { SettingKey: "OwnerUserId", SettingValue: userId });
-    knownOwner = userId;
-    return;
+    await s.upsert(master, "Settings", { SettingKey: "OwnerUserId", SettingValue: ctx.userId });
+    owner = ctx.userId;
   }
-  knownOwner = owner;
-  if (owner !== userId) throw new s.SheetsError("Esta conta não tem acesso a esta aplicação privada.", 403);
+  let res: { sid: string; isOwner: boolean; at: number };
+  if (owner === ctx.userId) res = { sid: master, isOwner: true, at: Date.now() };
+  else {
+    const email = String(ctx.claims.email ?? "").toLowerCase();
+    if (!email || !normEmails(get("AllowedEmails")).includes(email)) {
+      accessCache.delete(ctx.userId);
+      throw new s.SheetsError("Esta conta ainda não foi autorizada. Peça acesso ao administrador.", 403);
+    }
+    let sid = get(`Sheet:${ctx.userId}`);
+    if (!sid) {
+      sid = await s.createSpreadsheet(`EvoluaX — ${email}`);
+      await s.upsert(master, "Settings", { SettingKey: `Sheet:${ctx.userId}`, SettingValue: sid });
+    }
+    res = { sid, isOwner: false, at: Date.now() };
+  }
+  accessCache.set(ctx.userId, res);
+  return res;
 }
 
 const num = (v: string | undefined = "") => (v === "" ? 0 : Number(String(v).replace(",", ".")) || 0);
@@ -51,19 +71,20 @@ const bool = (v: string | undefined = "") => v === "" || v.toUpperCase() === "TR
 export const getFinanceData = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<Result<FinanceData & { spreadsheetUrl: string }>> => {
-    return guarded(context.userId, async () => {
+    return guarded(context as Ctx, async (sid, isOwner) => {
       const s = await import("./sheets.server");
-      const t = await s.readAll();
+      const t = await s.readAll(sid);
       const rows = (n: keyof typeof t) => t[n].rows.map((r) => r.obj);
       return {
-        spreadsheetUrl: s.spreadsheetUrl(),
+        spreadsheetUrl: s.spreadsheetUrl(sid),
+        isOwner,
         transactions: rows("Transactions").map((r) => ({ ...r, Amount: num(r.Amount) })) as FinanceData["transactions"],
         categories: rows("Categories").map((r) => ({ ...r, Active: bool(r.Active) })) as FinanceData["categories"],
         subcategories: rows("Subcategories").map((r) => ({ ...r, Active: bool(r.Active) })) as FinanceData["subcategories"],
         accounts: rows("Accounts").map((r) => ({ ...r, OpeningBalance: num(r.OpeningBalance), Active: bool(r.Active) })) as FinanceData["accounts"],
         budgets: rows("Budgets").map((r) => ({ ...r, BudgetAmount: num(r.BudgetAmount) })) as FinanceData["budgets"],
         settings: Object.fromEntries(
-          rows("Settings").filter((r) => r.SettingKey !== "OwnerUserId").map((r) => [r.SettingKey, r.SettingValue]),
+          rows("Settings").filter((r) => r.SettingKey !== "OwnerUserId" && r.SettingKey !== "AllowedEmails" && !r.SettingKey.startsWith("Sheet:")).map((r) => [r.SettingKey, r.SettingValue]),
         ),
       };
     });
@@ -71,19 +92,32 @@ export const getFinanceData = createServerFn({ method: "POST" })
 
 export const initializeSpreadsheet = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const s = await import("./sheets.server");
-    // Run setup first (idempotent), then claim/verify ownership.
-    try {
-      await ensureOwner(context.userId, true);
-      const r = await s.initialize();
-      await ensureOwner(context.userId, false);
-      return { ok: true as const, data: r };
-    } catch (e) {
-      if (e instanceof s.SheetsError) return { ok: false as const, error: e.message, code: e.status };
-      return { ok: false as const, error: "Falha na configuração inicial.", code: 500 };
-    }
-  });
+  .handler(async ({ context }) => guarded(context as Ctx, async (sid) => (await import("./sheets.server")).initialize(sid)));
+
+/** Owner only: emails allowed to sign in (each gets a separate spreadsheet). */
+export const getAllowedEmails = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) =>
+    guarded(context as Ctx, async (sid, isOwner) => {
+      const s = await import("./sheets.server");
+      if (!isOwner) throw new s.SheetsError("Apenas o administrador pode gerir acessos.", 403);
+      const t = await s.readTable(sid, "Settings");
+      return normEmails(t.rows.find((r) => r.obj.SettingKey === "AllowedEmails")?.obj.SettingValue ?? "");
+    }),
+  );
+
+export const saveAllowedEmails = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ emails: z.array(z.string().trim().toLowerCase().email()).max(200) }).parse(d))
+  .handler(async ({ data, context }) =>
+    guarded(context as Ctx, async (sid, isOwner) => {
+      const s = await import("./sheets.server");
+      if (!isOwner) throw new s.SheetsError("Apenas o administrador pode gerir acessos.", 403);
+      await s.upsert(sid, "Settings", { SettingKey: "AllowedEmails", SettingValue: [...new Set(data.emails)].join(",") });
+      accessCache.clear();
+      return { ok: true };
+    }),
+  );
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida");
 const id = z.string().min(6).max(64).regex(/^[A-Za-z0-9_-]+$/);
@@ -110,12 +144,12 @@ export const saveTransaction = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => txSchema.parse(d))
   .handler(async ({ data, context }) =>
-    guarded(context.userId, async () => {
+    guarded(context as Ctx, async (sid, isOwner) => {
       const s = await import("./sheets.server");
       if (data.Type === "Receita" && data.Status === "Pago") throw new s.SheetsError("Uma receita não pode estar 'Pago'.", 400);
       if (data.Type === "Despesa" && data.Status === "Recebido") throw new s.SheetsError("Uma despesa não pode estar 'Recebido'.", 400);
       const { expectedUpdatedAt, ...row } = data;
-      return s.upsert("Transactions", { ...row, TransferGroupId: "" }, expectedUpdatedAt);
+      return s.upsert(sid, "Transactions", { ...row, TransferGroupId: "" }, expectedUpdatedAt);
     }),
   );
 
@@ -135,7 +169,7 @@ export const saveTransfer = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => transferSchema.refine((v) => v.FromAccountId !== v.ToAccountId, "As contas devem ser diferentes").parse(d))
   .handler(async ({ data, context }) =>
-    guarded(context.userId, async () => {
+    guarded(context as Ctx, async (sid, isOwner) => {
       const s = await import("./sheets.server");
       const base = {
         Type: "Transferência", Description: data.Description, Amount: data.Amount, TransactionDate: data.TransactionDate,
@@ -143,8 +177,8 @@ export const saveTransfer = createServerFn({ method: "POST" })
         Recurrence: "Não recorrente", Notes: data.Notes, TransferGroupId: data.TransferGroupId,
       };
       const st = (leg: "Pago" | "Recebido") => (data.Status === "Efetuada" ? leg : data.Status);
-      await s.upsert("Transactions", { ...base, TransactionId: `${data.TransferGroupId}-out`, AccountId: data.FromAccountId, Status: st("Pago") });
-      await s.upsert("Transactions", { ...base, TransactionId: `${data.TransferGroupId}-in`, AccountId: data.ToAccountId, Status: st("Recebido") });
+      await s.upsert(sid, "Transactions", { ...base, TransactionId: `${data.TransferGroupId}-out`, AccountId: data.FromAccountId, Status: st("Pago") });
+      await s.upsert(sid, "Transactions", { ...base, TransactionId: `${data.TransferGroupId}-in`, AccountId: data.ToAccountId, Status: st("Recebido") });
       return { ok: true };
     }),
   );
@@ -153,11 +187,11 @@ export const deleteTransaction = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ TransactionId: z.string().min(1), TransferGroupId: z.string() }).parse(d))
   .handler(async ({ data, context }) =>
-    guarded(context.userId, async () => {
+    guarded(context as Ctx, async (sid, isOwner) => {
       const s = await import("./sheets.server");
       const n = data.TransferGroupId
-        ? await s.deleteWhere("Transactions", "TransferGroupId", [data.TransferGroupId])
-        : await s.deleteWhere("Transactions", "TransactionId", [data.TransactionId]);
+        ? await s.deleteWhere(sid, "Transactions", "TransferGroupId", [data.TransferGroupId])
+        : await s.deleteWhere(sid, "Transactions", "TransactionId", [data.TransactionId]);
       if (!n) throw new s.SheetsError("Registo não encontrado na folha de cálculo.", 404);
       return { deleted: n };
     }),
@@ -171,14 +205,14 @@ export const saveCategory = createServerFn({ method: "POST" })
       Color: z.string().regex(/^#[0-9a-fA-F]{6}$/), Icon: z.string().max(40), Active: z.boolean(),
     }).parse(d),
   )
-  .handler(async ({ data, context }) => guarded(context.userId, async () => (await import("./sheets.server")).upsert("Categories", data)));
+  .handler(async ({ data, context }) => guarded(context as Ctx, async (sid, isOwner) => (await import("./sheets.server")).upsert(sid, "Categories", data)));
 
 export const saveSubcategory = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
     z.object({ SubcategoryId: id, CategoryId: z.string().min(1), Name: z.string().trim().min(1).max(60), Active: z.boolean() }).parse(d),
   )
-  .handler(async ({ data, context }) => guarded(context.userId, async () => (await import("./sheets.server")).upsert("Subcategories", data)));
+  .handler(async ({ data, context }) => guarded(context as Ctx, async (sid, isOwner) => (await import("./sheets.server")).upsert(sid, "Subcategories", data)));
 
 export const saveAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -189,7 +223,7 @@ export const saveAccount = createServerFn({ method: "POST" })
       Currency: z.string().length(3), Active: z.boolean(),
     }).parse(d),
   )
-  .handler(async ({ data, context }) => guarded(context.userId, async () => (await import("./sheets.server")).upsert("Accounts", data)));
+  .handler(async ({ data, context }) => guarded(context as Ctx, async (sid, isOwner) => (await import("./sheets.server")).upsert(sid, "Accounts", data)));
 
 export const saveBudget = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -199,18 +233,18 @@ export const saveBudget = createServerFn({ method: "POST" })
       BudgetAmount: z.number().positive().max(1e9), Notes: z.string().max(500),
     }).parse(d),
   )
-  .handler(async ({ data, context }) => guarded(context.userId, async () => (await import("./sheets.server")).upsert("Budgets", data)));
+  .handler(async ({ data, context }) => guarded(context as Ctx, async (sid, isOwner) => (await import("./sheets.server")).upsert(sid, "Budgets", data)));
 
 export const deleteBudget = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ BudgetId: z.string().min(1) }).parse(d))
   .handler(async ({ data, context }) =>
-    guarded(context.userId, async () => (await import("./sheets.server")).deleteWhere("Budgets", "BudgetId", [data.BudgetId])),
+    guarded(context as Ctx, async (sid, isOwner) => (await import("./sheets.server")).deleteWhere(sid, "Budgets", "BudgetId", [data.BudgetId])),
   );
 
 export const saveSetting = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ SettingKey: z.string().regex(/^[A-Za-z]+$/).refine((k) => k !== "OwnerUserId"), SettingValue: z.string().max(200) }).parse(d))
-  .handler(async ({ data, context }) => guarded(context.userId, async () => (await import("./sheets.server")).upsert("Settings", data)));
+  .handler(async ({ data, context }) => guarded(context as Ctx, async (sid, isOwner) => (await import("./sheets.server")).upsert(sid, "Settings", data)));
 
 export { TX_TYPES };
