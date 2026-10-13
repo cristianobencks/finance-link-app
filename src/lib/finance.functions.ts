@@ -150,7 +150,13 @@ export const saveTransaction = createServerFn({ method: "POST" })
       if (data.Type === "Receita" && data.Status === "Pago") throw new s.SheetsError("Uma receita não pode estar 'Pago'.", 400);
       if (data.Type === "Despesa" && data.Status === "Recebido") throw new s.SheetsError("Uma despesa não pode estar 'Recebido'.", 400);
       const { expectedUpdatedAt, ...row } = data;
-      return s.upsert(sid, "Transactions", { ...row, TransferGroupId: "" }, expectedUpdatedAt);
+      const res = await s.upsert(sid, "Transactions", { ...row, TransferGroupId: "" }, expectedUpdatedAt);
+      // Only the owner's expenses go to the owner's Google Calendar.
+      if (isOwner) {
+        try { await (await import("./calendar.server")).syncExpenseEvent(data); }
+        catch (e) { console.error("Calendar sync failed", e); }
+      }
+      return res;
     }),
   );
 
@@ -194,6 +200,10 @@ export const deleteTransaction = createServerFn({ method: "POST" })
         ? await s.deleteWhere(sid, "Transactions", "TransferGroupId", [data.TransferGroupId])
         : await s.deleteWhere(sid, "Transactions", "TransactionId", [data.TransactionId]);
       if (!n) throw new s.SheetsError("Registo não encontrado na folha de cálculo.", 404);
+      if (isOwner && !data.TransferGroupId) {
+        try { await (await import("./calendar.server")).syncExpenseEvent({ TransactionId: data.TransactionId, Type: "", Status: "", Description: "", DueDate: "", TransactionDate: "", Amount: 0 }); }
+        catch (e) { console.error("Calendar delete failed", e); }
+      }
       return { deleted: n };
     }),
   );
