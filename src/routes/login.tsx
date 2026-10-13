@@ -17,9 +17,9 @@ export const Route = createFileRoute("/login")({
   },
   head: () => ({
     meta: [
-      { title: "Entrar — Meu Controle Financeiro" },
+      { title: "Entrar — EvoluaX" },
       { name: "description", content: "Acesso privado à sua gestão financeira." },
-      { property: "og:title", content: "Entrar — Meu Controle Financeiro" },
+      { property: "og:title", content: "Entrar — EvoluaX" },
       { property: "og:description", content: "Acesso privado à sua gestão financeira." },
     ],
   }),
@@ -76,7 +76,7 @@ function Login() {
         <div className="mb-6 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground"><Wallet className="h-5 w-5" /></div>
           <div>
-            <h1 className="text-lg font-semibold">Meu Controle Financeiro</h1>
+            <h1 className="text-lg font-semibold">EvoluaX</h1>
             <p className="text-xs text-muted-foreground">Acesso privado</p>
           </div>
         </div>
