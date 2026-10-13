@@ -91,6 +91,7 @@ function Login() {
         </label>
         <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground"><div className="h-px flex-1 bg-border" />ou<div className="h-px flex-1 bg-border" /></div>
         <Button variant="outline" className="w-full" onClick={google}>Continuar com Google</Button>
+        <Button variant="ghost" className="mt-2 w-full" onClick={demoLogin}>Explorar demonstração (sem conta)</Button>
         <button className="mt-5 w-full text-center text-sm text-muted-foreground hover:text-foreground" onClick={() => setMode(mode === "in" ? "up" : "in")}>
           {mode === "in" ? "Ainda não tem conta? Criar conta" : "Já tem conta? Entrar"}
         </button>

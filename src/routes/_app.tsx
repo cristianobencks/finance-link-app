@@ -77,7 +77,7 @@ function AppLayout() {
         <button onClick={signOut} aria-label="Terminar sessão"><LogOut className="h-4 w-4 text-muted-foreground" /></button>
       </header>
       <main className="px-4 pb-28 pt-6 lg:ml-64 lg:px-10 lg:pb-10 lg:pt-10">
-        {demoMode && <div className="mb-6 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm"><span><strong>Modo demonstração</strong> — dados fictícios. Nada é guardado no Google Sheets e tudo é apagado ao sair ou atualizar a página.</span><button onClick={signOut} className="font-medium text-primary underline">Sair da demonstração</button></div>}
+        {demoMode && <div className="mb-6 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-warning/40 bg-warning-soft px-4 py-3 text-sm"><span><strong>Modo demonstração</strong> — dados fictícios. Nada é guardado no Google Sheets e tudo é apagado ao sair ou atualizar a página.</span><button onClick={signOut} className="font-medium text-primary underline">Sair da demonstração</button></div>}
         {body}
       </main>
       <nav className="fixed inset-x-0 bottom-0 z-20 flex overflow-x-auto border-t bg-card lg:hidden">
