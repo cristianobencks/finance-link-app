@@ -193,6 +193,7 @@ export const saveTransfer = createServerFn({ method: "POST" })
 export const deleteTransaction = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ TransactionId: z.string().min(1), TransferGroupId: z.string() }).parse(d))
+  .middleware([])
   .handler(async ({ data, context }) =>
     guarded(context as Ctx, async (sid, isOwner) => {
       const s = await import("./sheets.server");
