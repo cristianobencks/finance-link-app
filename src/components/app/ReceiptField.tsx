@@ -33,8 +33,8 @@ export function ReceiptField({ value, onChange, txId, disabled }: { value: strin
   const isTiff = /\.tiff?$/i.test(value);
 
   async function pick(file: File) {
-    if (!file.type.startsWith("image/")) return toast.error("Escolha um ficheiro de imagem (JPG, PNG, TIFF…).");
-    if (file.size > MAX) return toast.error("A imagem não pode ter mais de 10 MB.");
+    if (!file.type.startsWith("image/")) { toast.error("Escolha um ficheiro de imagem (JPG, PNG, TIFF…)."); return; }
+    if (file.size > MAX) { toast.error("A imagem não pode ter mais de 10 MB."); return; }
     setBusy(true);
     try {
       const { data: u } = await supabase.auth.getUser();
