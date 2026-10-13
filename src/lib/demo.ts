@@ -48,15 +48,17 @@ function build(): Data {
 
 export function demoData(): Data { if (!store) store = build(); return structuredClone(store); }
 
-type Row = Record<string, unknown>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Row = any;
 function upsert(list: Row[], idKey: string, row: Row) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const i = list.findIndex((r) => r[idKey] === row[idKey]);
   const ts = now();
   const { expectedUpdatedAt: _x, ...clean } = row;
   if (i >= 0) list[i] = { ...list[i], ...clean, UpdatedAt: ts };
   else list.push({ ...clean, CreatedAt: ts, UpdatedAt: ts });
 }
-const S = () => { demoData(); return store as unknown as Record<string, Row[]>; };
+const S = () => { demoData(); return store as unknown as { transactions: Row[]; categories: Row[]; subcategories: Row[]; accounts: Row[]; budgets: Row[] }; };
 const ok = { ok: true as const };
 
 /** Demo handlers, same input shape as the server functions. */
