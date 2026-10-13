@@ -3,7 +3,7 @@ const GW = "https://connector-gateway.lovable.dev/google_calendar/calendar/v3";
 const CAL_NAME = "Cristiano Rocha";
 
 function headers() {
-  const a = process.env.LOVABLE_API_KEY, b = process.env.GOOGLE_CALENDAR_API_KEY;
+  const a = process.env["LOVABLE_API_KEY"], b = process.env["GOOGLE_CALENDAR_API_KEY"];
   if (!a || !b) throw new Error("Google Agenda não está ligado.");
   return { Authorization: `Bearer ${a}`, "X-Connection-Api-Key": b, "Content-Type": "application/json" };
 }
