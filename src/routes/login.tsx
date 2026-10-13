@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Wallet, Loader2 } from "lucide-react";
@@ -10,6 +10,10 @@ import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/login")({
   ssr: false,
+  beforeLoad: async () => {
+    const { data } = await supabase.auth.getSession();
+    if (data.session) throw redirect({ to: "/dashboard" });
+  },
   head: () => ({
     meta: [
       { title: "Entrar — Meu Controle Financeiro" },
@@ -27,10 +31,16 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [remember, setRemember] = useState(true);
+  function applyRemember() {
+    if (remember) localStorage.removeItem("mcf-ephemeral");
+    else { localStorage.setItem("mcf-ephemeral", "1"); sessionStorage.setItem("mcf-alive", "1"); }
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
+    applyRemember();
     try {
       if (mode === "in") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -48,6 +58,7 @@ function Login() {
   }
 
   async function google() {
+    applyRemember();
     const r = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
     if (r.error) { toast.error("Falha no início de sessão com Google"); return; }
     if (r.redirected) return;
@@ -69,6 +80,10 @@ function Login() {
           <div className="space-y-1.5"><Label htmlFor="pw">Palavra-passe</Label><Input id="pw" type="password" minLength={8} required value={password} onChange={(e) => setPassword(e.target.value)} /></div>
           <Button className="w-full" disabled={busy}>{busy && <Loader2 className="h-4 w-4 animate-spin" />}{mode === "in" ? "Entrar" : "Criar conta"}</Button>
         </form>
+        <label className="mt-4 flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
+          <input type="checkbox" className="h-4 w-4 accent-primary" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
+          Manter sessão iniciada
+        </label>
         <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground"><div className="h-px flex-1 bg-border" />ou<div className="h-px flex-1 bg-border" /></div>
         <Button variant="outline" className="w-full" onClick={google}>Continuar com Google</Button>
         <button className="mt-5 w-full text-center text-sm text-muted-foreground hover:text-foreground" onClick={() => setMode(mode === "in" ? "up" : "in")}>

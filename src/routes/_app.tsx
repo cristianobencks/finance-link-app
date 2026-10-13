@@ -12,6 +12,10 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_app")({
   ssr: false,
   beforeLoad: async () => {
+    if (localStorage.getItem("mcf-ephemeral") && !sessionStorage.getItem("mcf-alive")) {
+      await supabase.auth.signOut();
+      localStorage.removeItem("mcf-ephemeral");
+    }
     const { data } = await supabase.auth.getSession();
     if (!data.session) throw redirect({ to: "/login" });
   },
