@@ -10,33 +10,154 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppRouteImport } from './routes/_app'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as AppCategoriasRouteImport } from './routes/_app/categorias'
+import { Route as AppConfiguracoesRouteImport } from './routes/_app/configuracoes'
+import { Route as AppContasRouteImport } from './routes/_app/contas'
+import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as AppMovimentacoesRouteImport } from './routes/_app/movimentacoes'
+import { Route as AppNovaRouteImport } from './routes/_app/nova'
+import { Route as AppOrcamentoRouteImport } from './routes/_app/orcamento'
+import { Route as AppRelatoriosRouteImport } from './routes/_app/relatorios'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppCategoriasRoute = AppCategoriasRouteImport.update({
+  id: '/categorias',
+  path: '/categorias',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppConfiguracoesRoute = AppConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppContasRoute = AppContasRouteImport.update({
+  id: '/contas',
+  path: '/contas',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMovimentacoesRoute = AppMovimentacoesRouteImport.update({
+  id: '/movimentacoes',
+  path: '/movimentacoes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppNovaRoute = AppNovaRouteImport.update({
+  id: '/nova',
+  path: '/nova',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppOrcamentoRoute = AppOrcamentoRouteImport.update({
+  id: '/orcamento',
+  path: '/orcamento',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRelatoriosRoute = AppRelatoriosRouteImport.update({
+  id: '/relatorios',
+  path: '/relatorios',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/categorias': typeof AppCategoriasRoute
+  '/configuracoes': typeof AppConfiguracoesRoute
+  '/contas': typeof AppContasRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/movimentacoes': typeof AppMovimentacoesRoute
+  '/nova': typeof AppNovaRoute
+  '/orcamento': typeof AppOrcamentoRoute
+  '/relatorios': typeof AppRelatoriosRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/categorias': typeof AppCategoriasRoute
+  '/configuracoes': typeof AppConfiguracoesRoute
+  '/contas': typeof AppContasRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/movimentacoes': typeof AppMovimentacoesRoute
+  '/nova': typeof AppNovaRoute
+  '/orcamento': typeof AppOrcamentoRoute
+  '/relatorios': typeof AppRelatoriosRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
+  '/login': typeof LoginRoute
+  '/_app/categorias': typeof AppCategoriasRoute
+  '/_app/configuracoes': typeof AppConfiguracoesRoute
+  '/_app/contas': typeof AppContasRoute
+  '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/movimentacoes': typeof AppMovimentacoesRoute
+  '/_app/nova': typeof AppNovaRoute
+  '/_app/orcamento': typeof AppOrcamentoRoute
+  '/_app/relatorios': typeof AppRelatoriosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/categorias'
+    | '/configuracoes'
+    | '/contas'
+    | '/dashboard'
+    | '/movimentacoes'
+    | '/nova'
+    | '/orcamento'
+    | '/relatorios'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/login'
+    | '/categorias'
+    | '/configuracoes'
+    | '/contas'
+    | '/dashboard'
+    | '/movimentacoes'
+    | '/nova'
+    | '/orcamento'
+    | '/relatorios'
+  id:
+    | '__root__'
+    | '/'
+    | '/_app'
+    | '/login'
+    | '/_app/categorias'
+    | '/_app/configuracoes'
+    | '/_app/contas'
+    | '/_app/dashboard'
+    | '/_app/movimentacoes'
+    | '/_app/nova'
+    | '/_app/orcamento'
+    | '/_app/relatorios'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
+  LoginRoute: typeof LoginRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +169,107 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app/categorias': {
+      id: '/_app/categorias'
+      path: '/categorias'
+      fullPath: '/categorias'
+      preLoaderRoute: typeof AppCategoriasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/configuracoes': {
+      id: '/_app/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof AppConfiguracoesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/contas': {
+      id: '/_app/contas'
+      path: '/contas'
+      fullPath: '/contas'
+      preLoaderRoute: typeof AppContasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/dashboard': {
+      id: '/_app/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/movimentacoes': {
+      id: '/_app/movimentacoes'
+      path: '/movimentacoes'
+      fullPath: '/movimentacoes'
+      preLoaderRoute: typeof AppMovimentacoesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/nova': {
+      id: '/_app/nova'
+      path: '/nova'
+      fullPath: '/nova'
+      preLoaderRoute: typeof AppNovaRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/orcamento': {
+      id: '/_app/orcamento'
+      path: '/orcamento'
+      fullPath: '/orcamento'
+      preLoaderRoute: typeof AppOrcamentoRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/relatorios': {
+      id: '/_app/relatorios'
+      path: '/relatorios'
+      fullPath: '/relatorios'
+      preLoaderRoute: typeof AppRelatoriosRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
+interface AppRouteChildren {
+  AppCategoriasRoute: typeof AppCategoriasRoute
+  AppConfiguracoesRoute: typeof AppConfiguracoesRoute
+  AppContasRoute: typeof AppContasRoute
+  AppDashboardRoute: typeof AppDashboardRoute
+  AppMovimentacoesRoute: typeof AppMovimentacoesRoute
+  AppNovaRoute: typeof AppNovaRoute
+  AppOrcamentoRoute: typeof AppOrcamentoRoute
+  AppRelatoriosRoute: typeof AppRelatoriosRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppCategoriasRoute: AppCategoriasRoute,
+  AppConfiguracoesRoute: AppConfiguracoesRoute,
+  AppContasRoute: AppContasRoute,
+  AppDashboardRoute: AppDashboardRoute,
+  AppMovimentacoesRoute: AppMovimentacoesRoute,
+  AppNovaRoute: AppNovaRoute,
+  AppOrcamentoRoute: AppOrcamentoRoute,
+  AppRelatoriosRoute: AppRelatoriosRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
+  LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
