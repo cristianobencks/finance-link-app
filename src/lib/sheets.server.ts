@@ -12,20 +12,21 @@ export class SheetsError extends Error {
 function cfg() {
   const lovableKey = process.env["LOVABLE_API_KEY"];
   const sheetsKey = process.env["GOOGLE_SHEETS_API_KEY"];
-  const spreadsheetId = process.env["SPREADSHEET_ID"] || DEFAULT_SPREADSHEET_ID;
   if (!lovableKey || !sheetsKey) throw new SheetsError("A ligação ao Google Sheets não está configurada.", 503);
-  return { lovableKey, sheetsKey, spreadsheetId };
+  return { lovableKey, sheetsKey };
 }
 
-export function spreadsheetUrl() {
-  return `https://docs.google.com/spreadsheets/d/${process.env["SPREADSHEET_ID"] || DEFAULT_SPREADSHEET_ID}/edit`;
+export const masterSpreadsheetId = () => process.env["SPREADSHEET_ID"] || DEFAULT_SPREADSHEET_ID;
+
+export function spreadsheetUrl(sid: string) {
+  return `https://docs.google.com/spreadsheets/d/${sid}/edit`;
 }
 
-async function call<T = unknown>(path: string, init?: RequestInit): Promise<T> {
-  const { lovableKey, sheetsKey, spreadsheetId } = cfg();
+async function call<T = unknown>(sid: string, path: string, init?: RequestInit): Promise<T> {
+  const { lovableKey, sheetsKey } = cfg();
   let res: Response;
   try {
-    res = await fetch(`${GATEWAY_URL}/spreadsheets/${spreadsheetId}${path}`, {
+    res = await fetch(`${GATEWAY_URL}/spreadsheets${sid ? `/${sid}` : ""}${path}`, {
       ...init,
       headers: {
         Authorization: `Bearer ${lovableKey}`,
@@ -78,10 +79,10 @@ function validate(name: SheetName, t: Table) {
   if (missing.length) throw new SheetsError(`A aba ${name} não tem as colunas: ${missing.join(", ")}. Execute a configuração inicial.`, 409);
 }
 
-export async function readAll(): Promise<Record<SheetName, Table>> {
+export async function readAll(sid: string): Promise<Record<SheetName, Table>> {
   const names = Object.keys(SHEETS) as SheetName[];
   const qs = names.map((n) => `ranges=${n}!A1:Z`).join("&");
-  const r = await call<{ valueRanges: { values?: string[][] }[] }>(`/values:batchGet?${qs}&valueRenderOption=UNFORMATTED_VALUE`);
+  const r = await call<{ valueRanges: { values?: string[][] }[] }>(sid, `/values:batchGet?${qs}&valueRenderOption=UNFORMATTED_VALUE`);
   const out = {} as Record<SheetName, Table>;
   names.forEach((n, i) => {
     const t = toTable((r.valueRanges[i]?.values ?? []).map((row) => row.map((v) => String(v ?? ""))));
@@ -91,8 +92,8 @@ export async function readAll(): Promise<Record<SheetName, Table>> {
   return out;
 }
 
-async function readTable(name: SheetName): Promise<Table> {
-  const r = await call<{ values?: unknown[][] }>(`/values/${name}!A1:Z?valueRenderOption=UNFORMATTED_VALUE`);
+export async function readTable(sid: string, name: SheetName): Promise<Table> {
+  const r = await call<{ values?: unknown[][] }>(sid, `/values/${name}!A1:Z?valueRenderOption=UNFORMATTED_VALUE`);
   const t = toTable((r.values ?? []).map((row) => row.map((v) => String(v ?? ""))));
   validate(name, t);
   return t;
@@ -106,8 +107,8 @@ const toRow = (headers: string[], obj: Record<string, unknown>) =>
  * request after a network failure cannot create a second record.
  * If expectedUpdatedAt is given and differs, the write is rejected (concurrent edit).
  */
-export async function upsert(name: SheetName, obj: Record<string, unknown>, expectedUpdatedAt?: string) {
-  const t = await readTable(name);
+export async function upsert(sid: string, name: SheetName, obj: Record<string, unknown>, expectedUpdatedAt?: string) {
+  const t = await readTable(sid, name);
   const idCol = ID_COLUMN[name];
   const id = String(obj[idCol]);
   const existing = t.rows.find((r) => r.obj[idCol] === id);
@@ -118,35 +119,37 @@ export async function upsert(name: SheetName, obj: Record<string, unknown>, expe
     }
     const merged = { ...existing.obj, ...obj, CreatedAt: existing.obj.CreatedAt || now, UpdatedAt: now };
     const last = colLetter(t.headers.length - 1);
-    await call(`/values/${name}!A${existing.row}:${last}${existing.row}?valueInputOption=RAW`, {
+    await call(sid, `/values/${name}!A${existing.row}:${last}${existing.row}?valueInputOption=RAW`, {
       method: "PUT",
       body: JSON.stringify({ values: [toRow(t.headers, merged)] }),
     });
     return { created: false, UpdatedAt: now };
   }
   const full = { ...obj, CreatedAt: now, UpdatedAt: now };
-  await call(`/values/${name}!A1:${colLetter(t.headers.length - 1)}1:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`, {
+  await call(sid, `/values/${name}!A1:${colLetter(t.headers.length - 1)}1:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`, {
     method: "POST",
     body: JSON.stringify({ values: [toRow(t.headers, full)] }),
   });
   return { created: true, UpdatedAt: now };
 }
 
-let sheetIdCache: Record<string, number> | null = null;
-async function sheetIds() {
-  if (sheetIdCache) return sheetIdCache;
-  const meta = await call<{ sheets: { properties: { sheetId: number; title: string } }[] }>(`?fields=sheets.properties`);
-  sheetIdCache = Object.fromEntries(meta.sheets.map((s) => [s.properties.title, s.properties.sheetId]));
-  return sheetIdCache;
+const sheetIdCache = new Map<string, Record<string, number>>();
+async function sheetIds(sid: string) {
+  const hit = sheetIdCache.get(sid);
+  if (hit) return hit;
+  const meta = await call<{ sheets: { properties: { sheetId: number; title: string } }[] }>(sid, `?fields=sheets.properties`);
+  const ids = Object.fromEntries(meta.sheets.map((s) => [s.properties.title, s.properties.sheetId]));
+  sheetIdCache.set(sid, ids);
+  return ids;
 }
 
 /** Delete rows whose column `col` equals one of `values`. Deletes bottom-up so indexes stay valid. */
-export async function deleteWhere(name: SheetName, col: string, values: string[]) {
-  const t = await readTable(name);
+export async function deleteWhere(sid: string, name: SheetName, col: string, values: string[]) {
+  const t = await readTable(sid, name);
   const rows = t.rows.filter((r) => values.includes(r.obj[col] ?? "")).map((r) => r.row).sort((a, b) => b - a);
   if (!rows.length) return 0;
-  const ids = await sheetIds();
-  await call(`:batchUpdate`, {
+  const ids = await sheetIds(sid);
+  await call(sid, `:batchUpdate`, {
     method: "POST",
     body: JSON.stringify({
       requests: rows.map((r) => ({ deleteDimension: { range: { sheetId: ids[name], dimension: "ROWS", startIndex: r - 1, endIndex: r } } })),
@@ -156,17 +159,17 @@ export async function deleteWhere(name: SheetName, col: string, values: string[]
 }
 
 /** Creates missing tabs/headers and seeds default categories. Never overwrites existing data. */
-export async function initialize() {
-  sheetIdCache = null;
-  const ids = await sheetIds();
+export async function initialize(sid: string) {
+  sheetIdCache.delete(sid);
+  const ids = await sheetIds(sid);
   const missingTabs = (Object.keys(SHEETS) as SheetName[]).filter((n) => ids[n] === undefined);
   if (missingTabs.length) {
-    await call(`:batchUpdate`, { method: "POST", body: JSON.stringify({ requests: missingTabs.map((title) => ({ addSheet: { properties: { title } } })) }) });
-    sheetIdCache = null;
+    await call(sid, `:batchUpdate`, { method: "POST", body: JSON.stringify({ requests: missingTabs.map((title) => ({ addSheet: { properties: { title } } })) }) });
+    sheetIdCache.delete(sid);
   }
   const names = Object.keys(SHEETS) as SheetName[];
   const qs = names.map((n) => `ranges=${n}!1:1`).join("&");
-  const heads = await call<{ valueRanges: { values?: string[][] }[] }>(`/values:batchGet?${qs}`);
+  const heads = await call<{ valueRanges: { values?: string[][] }[] }>(sid, `/values:batchGet?${qs}`);
   const data: { range: string; values: string[][] }[] = [];
   names.forEach((n, i) => {
     const current = heads.valueRanges[i]?.values?.[0] ?? [];
@@ -176,16 +179,26 @@ export async function initialize() {
       if (missing.length) data.push({ range: `${n}!${colLetter(current.length)}1`, values: [missing] });
     }
   });
-  if (data.length) await call(`/values:batchUpdate`, { method: "POST", body: JSON.stringify({ valueInputOption: "RAW", data }) });
+  if (data.length) await call(sid, `/values:batchUpdate`, { method: "POST", body: JSON.stringify({ valueInputOption: "RAW", data }) });
 
-  const all = await readAll();
+  const all = await readAll(sid);
   const now = new Date().toISOString();
   const { cats, subs } = seedRows();
   const haveCats = new Set(all.Categories.rows.map((r) => r.obj.CategoryId));
   const haveSubs = new Set(all.Subcategories.rows.map((r) => r.obj.SubcategoryId));
   const newCats = cats.filter((c) => !haveCats.has(c.CategoryId)).map((c) => toRow(all.Categories.headers, { ...c, CreatedAt: now, UpdatedAt: now }));
   const newSubs = subs.filter((s) => !haveSubs.has(s.SubcategoryId)).map((s) => toRow(all.Subcategories.headers, { ...s, CreatedAt: now, UpdatedAt: now }));
-  if (newCats.length) await call(`/values/Categories!A1:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`, { method: "POST", body: JSON.stringify({ values: newCats }) });
-  if (newSubs.length) await call(`/values/Subcategories!A1:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`, { method: "POST", body: JSON.stringify({ values: newSubs }) });
+  if (newCats.length) await call(sid, `/values/Categories!A1:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`, { method: "POST", body: JSON.stringify({ values: newCats }) });
+  if (newSubs.length) await call(sid, `/values/Subcategories!A1:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`, { method: "POST", body: JSON.stringify({ values: newSubs }) });
   return { createdTabs: missingTabs.length, seededCategories: newCats.length, seededSubcategories: newSubs.length };
+}
+
+/** Creates a new spreadsheet (in the connected Google account) with all tabs/headers and default categories. */
+export async function createSpreadsheet(title: string) {
+  const r = await call<{ spreadsheetId: string }>("", "", {
+    method: "POST",
+    body: JSON.stringify({ properties: { title, locale: "pt_PT", timeZone: "Europe/Lisbon" }, sheets: (Object.keys(SHEETS) as SheetName[]).map((t) => ({ properties: { title: t } })) }),
+  });
+  await initialize(r.spreadsheetId);
+  return r.spreadsheetId;
 }
