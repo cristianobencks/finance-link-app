@@ -35,8 +35,8 @@ async function ensureOwner(userId: string, allowClaim: boolean) {
   if (owner !== userId) throw new s.SheetsError("Esta conta não tem acesso a esta aplicação privada.", 403);
 }
 
-const num = (v: string) => (v === "" ? 0 : Number(String(v).replace(",", ".")) || 0);
-const bool = (v: string) => v === "" || v.toUpperCase() === "TRUE";
+const num = (v: string | undefined = "") => (v === "" ? 0 : Number(String(v).replace(",", ".")) || 0);
+const bool = (v: string | undefined = "") => v === "" || v.toUpperCase() === "TRUE";
 
 export const getFinanceData = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

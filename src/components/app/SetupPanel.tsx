@@ -15,7 +15,7 @@ export function SetupPanel({ error, code }: { error?: string; code?: number }) {
     setBusy(true);
     try {
       const r = await init();
-      if (!r.ok) return toast.error("Configuração falhou", { description: r.error });
+      if (!r.ok) { toast.error("Configuração falhou", { description: r.error }); return; }
       toast.success("Folha de cálculo pronta", { description: `${r.data.seededCategories} categorias e ${r.data.seededSubcategories} subcategorias criadas.` });
       await qc.invalidateQueries({ queryKey: FINANCE_KEY });
     } catch {

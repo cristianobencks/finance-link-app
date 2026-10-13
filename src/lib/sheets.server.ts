@@ -61,12 +61,14 @@ export const colLetter = (i: number) => {
   return s;
 };
 
-export type Table = { headers: string[]; rows: { row: number; obj: Record<string, string> }[] };
+type AllCols = (typeof SHEETS)[SheetName][number];
+export type Row = Record<string, string> & { [K in AllCols]?: string };
+export type Table = { headers: string[]; rows: { row: number; obj: Row }[] };
 
 function toTable(values: string[][] | undefined): Table {
   const [headers = [], ...rest] = values ?? [];
   const rows = rest
-    .map((r, i) => ({ row: i + 2, obj: Object.fromEntries(headers.map((h, c) => [h, r[c] ?? ""])) }))
+    .map((r, i) => ({ row: i + 2, obj: Object.fromEntries(headers.map((h, c) => [h, r[c] ?? ""])) as Row }))
     .filter((r) => Object.values(r.obj).some((v) => v !== ""));
   return { headers, rows };
 }

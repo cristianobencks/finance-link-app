@@ -46,13 +46,13 @@ export function budgetSpent(b: Budget, txs: Transaction[]) {
 }
 
 export function prevMonth(month: string) {
-  const [y, m] = month.split("-").map(Number);
+  const y = Number(month.slice(0, 4)), m = Number(month.slice(5, 7));
   return m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, "0")}`;
 }
 
 export function lastMonths(month: string, n: number) {
   const out = [month];
-  while (out.length < n) out.unshift(prevMonth(out[0]));
+  while (out.length < n) out.unshift(prevMonth(out[0]!));
   return out;
 }
 
