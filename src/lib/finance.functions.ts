@@ -137,6 +137,7 @@ const txSchema = z.object({
   Nature: z.enum(NATURES),
   Recurrence: z.enum(RECURRENCES),
   Notes: z.string().max(1000),
+  Attachment: z.string().max(300).regex(/^([0-9a-f-]{36}\/[\w.-]+)?$/).optional(),
   expectedUpdatedAt: z.string().optional(),
 });
 
@@ -148,6 +149,7 @@ export const saveTransaction = createServerFn({ method: "POST" })
       const s = await import("./sheets.server");
       if (data.Type === "Receita" && data.Status === "Pago") throw new s.SheetsError("Uma receita não pode estar 'Pago'.", 400);
       if (data.Type === "Despesa" && data.Status === "Recebido") throw new s.SheetsError("Uma despesa não pode estar 'Recebido'.", 400);
+      if (data.Attachment && !data.Attachment.startsWith(`${(context as Ctx).userId}/`)) throw new s.SheetsError("Anexo inválido.", 400);
       const { expectedUpdatedAt, ...row } = data;
       return s.upsert(sid, "Transactions", { ...row, TransferGroupId: "" }, expectedUpdatedAt);
     }),

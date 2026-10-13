@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { demo } from "@/lib/demo";
+import { demo, isDemo } from "@/lib/demo";
+import { ReceiptField } from "@/components/app/ReceiptField";
 import { useMemo, useState } from "react";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
@@ -52,6 +53,7 @@ function TxForm({ editing }: { editing: Transaction | undefined }) {
     CategoryId: editing?.CategoryId ?? "", SubcategoryId: editing?.SubcategoryId ?? "", AccountId: editing?.AccountId ?? "",
     ToAccountId: "", PaymentMethod: editing?.PaymentMethod ?? "", Status: (editing?.Status ?? "Pago") as string,
     Nature: editing?.Nature ?? "Variável", Recurrence: editing?.Recurrence ?? "Não recorrente", Notes: editing?.Notes ?? "",
+    Attachment: editing?.Attachment ?? "",
   });
   type ErrKey = "Description" | "Amount" | "TransactionDate" | "AccountId" | "ToAccountId" | "CategoryId";
   const [errors, setErrors] = useState<Partial<Record<ErrKey, string>>>({});
@@ -89,6 +91,7 @@ function TxForm({ editing }: { editing: Transaction | undefined }) {
           TransactionId: txId, Type: kind, Description: f.Description, Amount: amount, TransactionDate: f.TransactionDate, DueDate: f.DueDate,
           CategoryId: f.CategoryId, SubcategoryId: f.SubcategoryId, AccountId: f.AccountId, PaymentMethod: f.PaymentMethod,
           Status: f.Status as Transaction["Status"], Nature: f.Nature as "Fixa", Recurrence: f.Recurrence as "Mensal", Notes: f.Notes,
+          Attachment: kind === "Despesa" ? f.Attachment : "",
           expectedUpdatedAt: editing?.UpdatedAt,
         }, editing ? "Movimentação atualizada no Google Sheets" : "Movimentação gravada no Google Sheets");
     if (ok) nav({ to: "/movimentacoes" });
@@ -134,6 +137,7 @@ function TxForm({ editing }: { editing: Transaction | undefined }) {
             )}
             {kind === "Transferência" && <Field label="Estado"><Select value={f.Status} onValueChange={set("Status")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{statuses.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></Field>}
             <Field label="Observações" className="sm:col-span-2"><Textarea value={f.Notes} onChange={(e) => set("Notes")(e.target.value)} maxLength={1000} /></Field>
+            {kind === "Despesa" && <Field label="Foto da despesa" className="sm:col-span-2"><ReceiptField value={f.Attachment} onChange={set("Attachment")} txId={txId} disabled={isDemo()} /></Field>}
           </div>
           <div className="mt-6 flex gap-2">
             <Button type="submit" disabled={pending}>{pending && <Loader2 className="h-4 w-4 animate-spin" />}{pending ? "A gravar…" : "Guardar"}</Button>

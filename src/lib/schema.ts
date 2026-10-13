@@ -3,7 +3,7 @@ export const SHEETS = {
   Transactions: [
     "TransactionId", "Type", "Description", "Amount", "TransactionDate", "DueDate",
     "CategoryId", "SubcategoryId", "AccountId", "PaymentMethod", "Status", "Nature",
-    "Recurrence", "Notes", "CreatedAt", "UpdatedAt", "TransferGroupId",
+    "Recurrence", "Notes", "CreatedAt", "UpdatedAt", "TransferGroupId", "Attachment",
   ],
   Categories: ["CategoryId", "Name", "Type", "Color", "Icon", "Active", "CreatedAt", "UpdatedAt"],
   Subcategories: ["SubcategoryId", "CategoryId", "Name", "Active", "CreatedAt", "UpdatedAt"],
@@ -37,6 +37,8 @@ export type Transaction = {
   TransactionDate: string; DueDate: string; CategoryId: string; SubcategoryId: string;
   AccountId: string; PaymentMethod: string; Status: (typeof TX_STATUS)[number]; Nature: string;
   Recurrence: string; Notes: string; CreatedAt: string; UpdatedAt: string; TransferGroupId: string;
+  /** Storage path of the receipt photo (private bucket), or "" */
+  Attachment?: string;
 };
 export type Category = { CategoryId: string; Name: string; Type: "Receita" | "Despesa"; Color: string; Icon: string; Active: boolean; CreatedAt: string; UpdatedAt: string };
 export type Subcategory = { SubcategoryId: string; CategoryId: string; Name: string; Active: boolean; CreatedAt: string; UpdatedAt: string };

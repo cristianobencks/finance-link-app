@@ -61,11 +61,13 @@ function Login() {
 
   function demoLogin() { startDemo(); nav({ to: "/dashboard" }); }
 
-  async function google() {
+  const google = () => social("google");
+  async function social(p: "google" | "microsoft" | "apple") {
     endDemo();
     applyRemember();
-    const r = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin, extraParams: { prompt: "select_account" } });
-    if (r.error) { toast.error("Falha no início de sessão com Google"); return; }
+    const label = { google: "Google", microsoft: "Microsoft", apple: "Apple" }[p];
+    const r = await lovable.auth.signInWithOAuth(p, { redirect_uri: window.location.origin, ...(p === "google" ? { extraParams: { prompt: "select_account" } } : {}) });
+    if (r.error) { toast.error(`Falha no início de sessão com ${label}`); return; }
     if (r.redirected) return;
     nav({ to: "/dashboard" });
   }
@@ -91,6 +93,8 @@ function Login() {
         </label>
         <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground"><div className="h-px flex-1 bg-border" />ou<div className="h-px flex-1 bg-border" /></div>
         <Button variant="outline" className="w-full" onClick={google}>Continuar com Google</Button>
+        <Button variant="outline" className="mt-2 w-full" onClick={() => social("microsoft")}>Continuar com Microsoft</Button>
+        <Button variant="outline" className="mt-2 w-full" onClick={() => social("apple")}>Continuar com Apple</Button>
         <Button variant="ghost" className="mt-2 w-full" onClick={demoLogin}>Explorar demonstração (sem conta)</Button>
         <button className="mt-5 w-full text-center text-sm text-muted-foreground hover:text-foreground" onClick={() => setMode(mode === "in" ? "up" : "in")}>
           {mode === "in" ? "Ainda não tem conta? Criar conta" : "Já tem conta? Entrar"}
