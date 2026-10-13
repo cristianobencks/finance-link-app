@@ -61,7 +61,7 @@ function AppLayout() {
       <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col bg-sidebar text-sidebar-foreground lg:flex">
         <div className="flex items-center gap-3 px-6 py-6">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground"><Wallet className="h-5 w-5" /></div>
-          <span className="font-display text-sm font-semibold leading-tight text-sidebar-accent-foreground">Meu Controle<br />Financeiro</span>
+          <span className="font-display text-sm font-semibold leading-tight text-sidebar-accent-foreground">EvoluaX</span>
         </div>
         <nav className="flex-1 space-y-1 px-3">
           {NAV.map((n) => (
