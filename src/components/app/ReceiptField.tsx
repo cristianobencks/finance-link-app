@@ -74,3 +74,10 @@ export function ReceiptField({ value, onChange, txId, disabled }: { value: strin
     </div>
   );
 }
+
+export function ReceiptPreview({ path }: { path: string }) {
+  const url = useReceiptUrl(path);
+  if (!url) return <span className="text-xs text-muted-foreground">A carregar…</span>;
+  if (/\.tiff?$/i.test(path)) return <a href={url} target="_blank" rel="noreferrer" className="text-primary underline">Abrir imagem</a>;
+  return <a href={url} target="_blank" rel="noreferrer"><img src={url} alt="Foto da despesa" className="mt-1 max-h-64 rounded-lg border object-contain" /></a>;
+}

@@ -14,6 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { downloadCSV, fmtDate, fmtDateTime, fmtEUR } from "@/lib/finance";
 import { TX_STATUS, TX_TYPES, type Transaction } from "@/lib/schema";
+import { ReceiptPreview } from "@/components/app/ReceiptField";
 
 export const Route = createFileRoute("/_app/movimentacoes")({
   head: () => ({ meta: [{ title: "Movimentações — Meu Controle Financeiro" }, { name: "description", content: "Lista, filtros e exportação das movimentações." }, { property: "og:title", content: "Movimentações" }, { property: "og:description", content: "Lista, filtros e exportação das movimentações." }] }),
