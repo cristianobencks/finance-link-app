@@ -12,5 +12,5 @@
 ## Architecture rules
 - Google Sheets (via the Lovable connector gateway, server-only in `src/lib/sheets.server.ts`) is the single source of truth for financial data; Lovable Cloud is used only for sign-in. Why: user requirement — no parallel finance database.
 - Columns are resolved by header name and records are upserted by a client-generated stable ID. Why: tolerate column reordering and make retries idempotent (no duplicates).
-- Access is private: the first signed-in user is stored as `OwnerUserId` in the Settings tab and every server function rejects other users. Why: single-owner app without a roles table.
+- Access: the first signed-in user owns the master spreadsheet (`OwnerUserId` in its Settings tab); other users need their email in master `AllowedEmails` and each gets a separate spreadsheet mapped as `Sheet:<userId>`; server functions resolve the spreadsheet per caller. Why: per-user data isolation without a finance database.
 - Pure finance calculations live in `src/lib/finance.ts` with tests in `src/test/finance.test.ts`. Why: dashboard rules must be verifiable.
