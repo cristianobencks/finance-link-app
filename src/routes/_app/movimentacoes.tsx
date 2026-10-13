@@ -130,6 +130,7 @@ function List() {
         <DialogContent><DialogHeader><DialogTitle>{view?.Description}</DialogTitle></DialogHeader>
           {view && <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
             {[["ID", view.TransactionId], ["Tipo", view.Type], ["Valor", fmtEUR(view.Amount)], ["Estado", view.Status], ["Data", fmtDate(view.TransactionDate)], ["Vencimento", fmtDate(view.DueDate)], ["Categoria", catName(view.CategoryId)], ["Subcategoria", subName(view.SubcategoryId)], ["Conta", accName(view.AccountId)], ["Método", view.PaymentMethod || "—"], ["Natureza", view.Nature], ["Recorrência", view.Recurrence], ["Criado", fmtDateTime(view.CreatedAt)], ["Atualizado", fmtDateTime(view.UpdatedAt)], ["Observações", view.Notes || "—"]].map(([k, v]) => <div key={k}><dt className="text-xs text-muted-foreground">{k}</dt><dd className="break-words">{v}</dd></div>)}
+            {view.Attachment && <div className="col-span-2"><dt className="text-xs text-muted-foreground">Foto da despesa</dt><dd><ReceiptPreview path={view.Attachment} /></dd></div>}
           </dl>}
         </DialogContent>
       </Dialog>
