@@ -70,7 +70,7 @@ const bool = (v: string | undefined = "") => v === "" || v.toUpperCase() === "TR
 
 export const getFinanceData = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }): Promise<Result<FinanceData & { spreadsheetUrl: string }>> => {
+  .handler(async ({ context }): Promise<Result<FinanceData & { spreadsheetUrl: string; isOwner: boolean }>> => {
     return guarded(context as Ctx, async (sid, isOwner) => {
       const s = await import("./sheets.server");
       const t = await s.readAll(sid);
@@ -84,7 +84,7 @@ export const getFinanceData = createServerFn({ method: "POST" })
         accounts: rows("Accounts").map((r) => ({ ...r, OpeningBalance: num(r.OpeningBalance), Active: bool(r.Active) })) as FinanceData["accounts"],
         budgets: rows("Budgets").map((r) => ({ ...r, BudgetAmount: num(r.BudgetAmount) })) as FinanceData["budgets"],
         settings: Object.fromEntries(
-          rows("Settings").filter((r) => r.SettingKey !== "OwnerUserId" && r.SettingKey !== "AllowedEmails" && !r.SettingKey.startsWith("Sheet:")).map((r) => [r.SettingKey, r.SettingValue]),
+          rows("Settings").filter((r) => r.SettingKey !== "OwnerUserId" && r.SettingKey !== "AllowedEmails" && !(r.SettingKey ?? "").startsWith("Sheet:")).map((r) => [r.SettingKey, r.SettingValue]),
         ),
       };
     });

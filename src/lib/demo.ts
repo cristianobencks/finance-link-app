@@ -6,7 +6,7 @@ export const isDemo = () => typeof window !== "undefined" && sessionStorage.getI
 export function startDemo() { sessionStorage.setItem(KEY, "1"); store = null; }
 export function endDemo() { sessionStorage.removeItem(KEY); store = null; }
 
-type Data = FinanceData & { spreadsheetUrl: string };
+type Data = FinanceData & { spreadsheetUrl: string; isOwner: boolean };
 let store: Data | null = null;
 const now = () => new Date().toISOString();
 
@@ -39,6 +39,7 @@ function build(): Data {
   const budgets = [["cat-d-alimentacao", 450], ["cat-d-moradia", 950], ["cat-d-lazer", 80]].map(([c, v]) => ({ BudgetId: `demo-b-${c}`, YearMonth: cur, CategoryId: c as string, BudgetAmount: v as number, Notes: "", CreatedAt: ts, UpdatedAt: ts }));
   return {
     spreadsheetUrl: "",
+    isOwner: false,
     transactions,
     categories: cats.map((c) => ({ ...c, CreatedAt: ts, UpdatedAt: ts })),
     subcategories: subs.map((s) => ({ ...s, CreatedAt: ts, UpdatedAt: ts })),
