@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/nova")({
   validateSearch: z.object({ id: z.string().optional() }),
-  head: () => ({ meta: [{ title: "Nova movimentação — Meu Controle Financeiro" }, { name: "description", content: "Registar uma receita, despesa ou transferência." }, { property: "og:title", content: "Nova movimentação" }, { property: "og:description", content: "Registar uma receita, despesa ou transferência." }] }),
+  head: () => ({ meta: [{ title: "Nova movimentação — Meu Controle Financeiro" }, { name: "description", content: "Registar uma receita, despesa ou transferência." }, { property: "og:title", content: "Nova movimentação" }, { property: "og:description", content: "Registar uma receita, despesa ou transferência." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: NewTx,
 });
 

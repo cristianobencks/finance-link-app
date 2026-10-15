@@ -10,6 +10,8 @@ export const Route = createFileRoute("/")({
       { name: "description", content: "Controle receitas, despesas e orçamentos com os dados no Google Sheets." },
       { property: "og:title", content: "Meu Controle Financeiro" },
       { property: "og:description", content: "Controle receitas, despesas e orçamentos com os dados no Google Sheets." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
 });

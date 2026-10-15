@@ -15,7 +15,7 @@ import { budgetSpent, fmtEUR, fmtMonth, newId, todayLisbon, ym } from "@/lib/fin
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/orcamento")({
-  head: () => ({ meta: [{ title: "Orçamento — Meu Controle Financeiro" }, { name: "description", content: "Limites de despesa por categoria e mês." }, { property: "og:title", content: "Orçamento mensal" }, { property: "og:description", content: "Limites de despesa por categoria e mês." }] }),
+  head: () => ({ meta: [{ title: "Orçamento — Meu Controle Financeiro" }, { name: "description", content: "Limites de despesa por categoria e mês." }, { property: "og:title", content: "Orçamento mensal" }, { property: "og:description", content: "Limites de despesa por categoria e mês." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: Budgets,
 });
 
