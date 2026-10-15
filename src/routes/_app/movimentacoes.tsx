@@ -17,7 +17,7 @@ import { TX_STATUS, TX_TYPES, type Transaction } from "@/lib/schema";
 import { ReceiptPreview } from "@/components/app/ReceiptField";
 
 export const Route = createFileRoute("/_app/movimentacoes")({
-  head: () => ({ meta: [{ title: "Movimentações — Meu Controle Financeiro" }, { name: "description", content: "Lista, filtros e exportação das movimentações." }, { property: "og:title", content: "Movimentações" }, { property: "og:description", content: "Lista, filtros e exportação das movimentações." }] }),
+  head: () => ({ meta: [{ title: "Movimentações — Meu Controle Financeiro" }, { name: "description", content: "Lista, filtros e exportação das movimentações." }, { property: "og:title", content: "Movimentações" }, { property: "og:description", content: "Lista, filtros e exportação das movimentações." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: List,
 });
 

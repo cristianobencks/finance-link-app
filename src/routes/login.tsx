@@ -21,6 +21,8 @@ export const Route = createFileRoute("/login")({
       { name: "description", content: "Acesso privado à sua gestão financeira." },
       { property: "og:title", content: "Entrar — EvoluaX" },
       { property: "og:description", content: "Acesso privado à sua gestão financeira." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Login,

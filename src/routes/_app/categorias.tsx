@@ -17,7 +17,7 @@ import type { Category, Subcategory } from "@/lib/schema";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/categorias")({
-  head: () => ({ meta: [{ title: "Categorias — Meu Controle Financeiro" }, { name: "description", content: "Gerir categorias e subcategorias de receitas e despesas." }, { property: "og:title", content: "Categorias" }, { property: "og:description", content: "Gerir categorias e subcategorias." }] }),
+  head: () => ({ meta: [{ title: "Categorias — Meu Controle Financeiro" }, { name: "description", content: "Gerir categorias e subcategorias de receitas e despesas." }, { property: "og:title", content: "Categorias" }, { property: "og:description", content: "Gerir categorias e subcategorias." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: Cats,
 });
 

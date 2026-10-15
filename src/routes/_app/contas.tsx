@@ -17,7 +17,7 @@ import { ACCOUNT_TYPES, type Account } from "@/lib/schema";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/contas")({
-  head: () => ({ meta: [{ title: "Contas — Meu Controle Financeiro" }, { name: "description", content: "Gerir contas financeiras e saldos." }, { property: "og:title", content: "Contas" }, { property: "og:description", content: "Gerir contas financeiras e saldos." }] }),
+  head: () => ({ meta: [{ title: "Contas — Meu Controle Financeiro" }, { name: "description", content: "Gerir contas financeiras e saldos." }, { property: "og:title", content: "Contas" }, { property: "og:description", content: "Gerir contas financeiras e saldos." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: Accounts,
 });
 

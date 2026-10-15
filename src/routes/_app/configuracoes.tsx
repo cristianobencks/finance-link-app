@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { getAllowedEmails, saveAllowedEmails } from "@/lib/finance.functions";
 
 export const Route = createFileRoute("/_app/configuracoes")({
-  head: () => ({ meta: [{ title: "Configurações — Meu Controle Financeiro" }, { name: "description", content: "Ligação ao Google Sheets e estrutura da folha de cálculo." }, { property: "og:title", content: "Configurações" }, { property: "og:description", content: "Ligação ao Google Sheets e estrutura da folha." }] }),
+  head: () => ({ meta: [{ title: "Configurações — Meu Controle Financeiro" }, { name: "description", content: "Ligação ao Google Sheets e estrutura da folha de cálculo." }, { property: "og:title", content: "Configurações" }, { property: "og:description", content: "Ligação ao Google Sheets e estrutura da folha." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: SettingsPage,
 });
 

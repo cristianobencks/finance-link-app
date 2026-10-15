@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { accountBalance, downloadCSV, fmtDate, fmtEUR, fmtMonth, isSettled, lastMonths, monthSummary, round, todayLisbon, ym } from "@/lib/finance";
 
 export const Route = createFileRoute("/_app/relatorios")({
-  head: () => ({ meta: [{ title: "Relatórios — Meu Controle Financeiro" }, { name: "description", content: "Relatórios de receitas, despesas, categorias e saldo." }, { property: "og:title", content: "Relatórios" }, { property: "og:description", content: "Relatórios de receitas, despesas, categorias e saldo." }] }),
+  head: () => ({ meta: [{ title: "Relatórios — Meu Controle Financeiro" }, { name: "description", content: "Relatórios de receitas, despesas, categorias e saldo." }, { property: "og:title", content: "Relatórios" }, { property: "og:description", content: "Relatórios de receitas, despesas, categorias e saldo." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: Reports,
 });
 
