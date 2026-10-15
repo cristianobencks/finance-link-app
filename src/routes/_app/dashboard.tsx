@@ -3,13 +3,14 @@ import { useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from "recharts";
 import { ArrowDownRight, ArrowUpRight, Wallet, Clock, PiggyBank, Plus } from "lucide-react";
 import { useFinance } from "@/hooks/use-finance";
+import { MarketQuotes } from "@/components/app/MarketQuotes";
 import { PageHeader, Panel, Stat, Empty, StatusBadge, Amount } from "@/components/app/ui";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { accountBalance, fmtDate, fmtEUR, fmtMonth, isSettled, lastMonths, monthSummary, prevMonth, todayLisbon, ym } from "@/lib/finance";
 
 export const Route = createFileRoute("/_app/dashboard")({
-  head: () => ({ meta: [{ title: "Dashboard — Meu Controle Financeiro" }, { name: "description", content: "Resumo do saldo, receitas e despesas do mês." }, { property: "og:title", content: "Dashboard — Meu Controle Financeiro" }, { property: "og:description", content: "Resumo do saldo, receitas e despesas do mês." }] }),
+  head: () => ({ meta: [{ title: "Dashboard — EvoluaX" }, { name: "description", content: "Resumo financeiro mensal e cotações de euro, dólar americano e bitcoin." }, { property: "og:title", content: "Dashboard — EvoluaX" }, { property: "og:description", content: "Resumo financeiro mensal e cotações de euro, dólar americano e bitcoin." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: Dashboard,
 });
 
@@ -46,6 +47,7 @@ function Dashboard() {
   return (
     <>
       <PageHeader title="Dashboard" subtitle={`Resumo de ${fmtMonth(month)}`} actions={<Button asChild><Link to="/nova"><Plus className="h-4 w-4" />Nova movimentação</Link></Button>} />
+      <MarketQuotes />
       <div className="mb-6 flex flex-wrap gap-2">
         <Select value={month} onValueChange={setMonth}><SelectTrigger className="w-40 bg-card"><SelectValue /></SelectTrigger><SelectContent>{yearOptions.map((m) => <SelectItem key={m} value={m}>{fmtMonth(m)}</SelectItem>)}</SelectContent></Select>
         <Select value={account} onValueChange={setAccount}><SelectTrigger className="w-48 bg-card"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todas as contas</SelectItem>{d.accounts.map((a) => <SelectItem key={a.AccountId} value={a.AccountId}>{a.Name}</SelectItem>)}</SelectContent></Select>

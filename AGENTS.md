@@ -10,6 +10,7 @@
 <!-- LOVABLE:END -->
 
 ## Architecture rules
+- Dashboard market quotes use independent, public read-only server fetches with short-lived memory caching; never write them to Sheets or include them in finance totals. Why: informational prices must not slow or alter personal financial data.
 - Google Sheets (via the Lovable connector gateway, server-only in `src/lib/sheets.server.ts`) is the single source of truth for financial data; Lovable Cloud is used only for sign-in. Why: user requirement — no parallel finance database.
 - Columns are resolved by header name and records are upserted by a client-generated stable ID. Why: tolerate column reordering and make retries idempotent (no duplicates).
 - Access: the first signed-in user owns the master spreadsheet (`OwnerUserId` in its Settings tab); other users need their email in master `AllowedEmails` and each gets a separate spreadsheet mapped as `Sheet:<userId>`; server functions resolve the spreadsheet per caller. Why: per-user data isolation without a finance database.
