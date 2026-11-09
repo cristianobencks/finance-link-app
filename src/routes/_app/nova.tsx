@@ -2,7 +2,9 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { demo, isDemo } from "@/lib/demo";
 import { ReceiptField } from "@/components/app/ReceiptField";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { fmtDate, fmtEUR } from "@/lib/finance";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
 import { useFinance, useMutate } from "@/hooks/use-finance";
@@ -33,6 +35,8 @@ function Field({ label, error, children, className }: { label: string; error?: s
 function DateInput({ value, onChange }: { value: string; onChange: (iso: string) => void }) {
   const toText = (iso: string) => (/^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "");
   const [text, setText] = useState(() => toText(value));
+  // Sync when the value is set from outside (e.g. AI reading a receipt).
+  useEffect(() => { if (value && toText(value) !== text) setText(toText(value)); }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
   function change(raw: string) {
     const digits = raw.replace(/\D/g, "").slice(0, 8);
     const t = [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4, 8)].filter(Boolean).join("/");
@@ -74,6 +78,7 @@ function TxForm({ editing }: { editing: Transaction | undefined }) {
   });
   type ErrKey = "Description" | "Amount" | "TransactionDate" | "AccountId" | "ToAccountId" | "CategoryId";
   const [errors, setErrors] = useState<Partial<Record<ErrKey, string>>>({});
+  const [confirm, setConfirm] = useState<number | null>(null);
   const set = (k: keyof typeof f) => (v: string) => setF((p) => ({ ...p, [k]: v, ...(k === "CategoryId" ? { SubcategoryId: "" } : {}) }));
 
   const cats = useMemo(() => d.categories.filter((c) => c.Type === kind && (c.Active || c.CategoryId === f.CategoryId)).sort((a, b) => a.Name.localeCompare(b.Name)), [d, kind, f.CategoryId]);
@@ -101,7 +106,11 @@ function TxForm({ editing }: { editing: Transaction | undefined }) {
     } else if (!f.CategoryId) err.CategoryId = "Escolha uma categoria.";
     setErrors(err);
     if (Object.keys(err).length) return;
+    setConfirm(amount);
+  }
 
+  async function save(amount: number) {
+    setConfirm(null);
     const ok = kind === "Transferência"
       ? await tr.run({ TransferGroupId: groupId, FromAccountId: f.AccountId, ToAccountId: f.ToAccountId, Amount: amount, TransactionDate: f.TransactionDate, Description: f.Description, Status: f.Status as "Efetuada", Notes: f.Notes }, "Transferência registada no Google Sheets")
       : await tx.run({
@@ -170,6 +179,22 @@ function TxForm({ editing }: { editing: Transaction | undefined }) {
           </div>
         </Panel>
       </form>
+      <AlertDialog open={confirm !== null} onOpenChange={(o) => !o && setConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar gravação?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {kind}: {f.Description} — {fmtEUR(confirm ?? 0)} em {f.TransactionDate ? fmtDate(f.TransactionDate) : ""}
+              {kind !== "Transferência" && <> · {d.categories.find((c) => c.CategoryId === f.CategoryId)?.Name ?? ""}</>}
+              {" "}· {d.accounts.find((a) => a.AccountId === f.AccountId)?.Name ?? ""} · {f.Status}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Rever</AlertDialogCancel>
+            <AlertDialogAction onClick={() => confirm !== null && save(confirm)}>Confirmar e guardar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
