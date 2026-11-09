@@ -2,7 +2,7 @@ import { createFileRoute, Link, Outlet, redirect, useNavigate, useRouterState } 
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import {
-  LayoutDashboard, ArrowLeftRight, PlusCircle, Tags, Landmark, PiggyBank, BarChart3, Settings, LogOut, Wallet, Loader2,
+  LayoutDashboard, ArrowLeftRight, PlusCircle, Tags, Landmark, PiggyBank, BarChart3, Settings, LogOut, Wallet, Loader2, CreditCard,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useFinanceQuery } from "@/hooks/use-finance";
@@ -28,11 +28,14 @@ const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/movimentacoes", label: "Movimentações", icon: ArrowLeftRight },
   { to: "/nova", label: "Nova movimentação", icon: PlusCircle },
-  { to: "/categorias", label: "Categorias", icon: Tags },
-  { to: "/contas", label: "Contas", icon: Landmark },
   { to: "/orcamento", label: "Orçamento", icon: PiggyBank },
   { to: "/relatorios", label: "Relatórios", icon: BarChart3 },
   { to: "/configuracoes", label: "Configurações", icon: Settings },
+] as const;
+const SUB = [
+  { to: "/categorias", label: "Categorias", icon: Tags },
+  { to: "/contas", label: "Contas", icon: Landmark },
+  { to: "/metodos-pagamento", label: "Métodos de pagamento", icon: CreditCard },
 ] as const;
 
 function AppLayout() {
@@ -69,6 +72,13 @@ function AppLayout() {
               <n.icon className="h-4 w-4" />{n.label}
             </Link>
           ))}
+          <div className="ml-6 space-y-1 border-l border-sidebar-border pl-2">
+            {SUB.map((n) => (
+              <Link key={n.to} to={n.to} className={cn("flex items-center gap-3 rounded-lg px-3 py-2 text-xs transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground", path.startsWith(n.to) && "bg-sidebar-accent text-sidebar-accent-foreground font-medium")}>
+                <n.icon className="h-3.5 w-3.5" />{n.label}
+              </Link>
+            ))}
+          </div>
         </nav>
         <button onClick={signOut} className="m-3 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-sidebar-accent"><LogOut className="h-4 w-4" />Terminar sessão</button>
       </aside>
@@ -82,7 +92,7 @@ function AppLayout() {
       </main>
       <nav className="fixed inset-x-0 bottom-0 z-20 flex overflow-x-auto border-t bg-card lg:hidden">
         {NAV.map((n) => (
-          <Link key={n.to} to={n.to} className={cn("flex min-w-[4.5rem] flex-1 flex-col items-center gap-1 px-2 py-2 text-[10px] text-muted-foreground", path.startsWith(n.to) && "text-primary")}>
+          <Link key={n.to} to={n.to} className={cn("flex min-w-[4.5rem] flex-1 flex-col items-center gap-1 px-2 py-2 text-[10px] text-muted-foreground", (path.startsWith(n.to) || (n.to === "/configuracoes" && SUB.some((x) => path.startsWith(x.to)))) && "text-primary")}>
             <n.icon className="h-5 w-5" /><span className="truncate">{n.label.split(" ")[0]}</span>
           </Link>
         ))}

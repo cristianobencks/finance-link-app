@@ -16,6 +16,7 @@ import { Route as AppCategoriasRouteImport } from './routes/_app/categorias'
 import { Route as AppConfiguracoesRouteImport } from './routes/_app/configuracoes'
 import { Route as AppContasRouteImport } from './routes/_app/contas'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as AppMetodosPagamentoRouteImport } from './routes/_app/metodos-pagamento'
 import { Route as AppMovimentacoesRouteImport } from './routes/_app/movimentacoes'
 import { Route as AppNovaRouteImport } from './routes/_app/nova'
 import { Route as AppOrcamentoRouteImport } from './routes/_app/orcamento'
@@ -56,6 +57,11 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
+const AppMetodosPagamentoRoute = AppMetodosPagamentoRouteImport.update({
+  id: '/metodos-pagamento',
+  path: '/metodos-pagamento',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppMovimentacoesRoute = AppMovimentacoesRouteImport.update({
   id: '/movimentacoes',
   path: '/movimentacoes',
@@ -90,6 +96,7 @@ export interface FileRoutesByFullPath {
   '/configuracoes': typeof AppConfiguracoesRoute
   '/contas': typeof AppContasRoute
   '/dashboard': typeof AppDashboardRoute
+  '/metodos-pagamento': typeof AppMetodosPagamentoRoute
   '/movimentacoes': typeof AppMovimentacoesRoute
   '/nova': typeof AppNovaRoute
   '/orcamento': typeof AppOrcamentoRoute
@@ -103,6 +110,7 @@ export interface FileRoutesByTo {
   '/configuracoes': typeof AppConfiguracoesRoute
   '/contas': typeof AppContasRoute
   '/dashboard': typeof AppDashboardRoute
+  '/metodos-pagamento': typeof AppMetodosPagamentoRoute
   '/movimentacoes': typeof AppMovimentacoesRoute
   '/nova': typeof AppNovaRoute
   '/orcamento': typeof AppOrcamentoRoute
@@ -118,6 +126,7 @@ export interface FileRoutesById {
   '/_app/configuracoes': typeof AppConfiguracoesRoute
   '/_app/contas': typeof AppContasRoute
   '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/metodos-pagamento': typeof AppMetodosPagamentoRoute
   '/_app/movimentacoes': typeof AppMovimentacoesRoute
   '/_app/nova': typeof AppNovaRoute
   '/_app/orcamento': typeof AppOrcamentoRoute
@@ -133,6 +142,7 @@ export interface FileRouteTypes {
     | '/configuracoes'
     | '/contas'
     | '/dashboard'
+    | '/metodos-pagamento'
     | '/movimentacoes'
     | '/nova'
     | '/orcamento'
@@ -146,6 +156,7 @@ export interface FileRouteTypes {
     | '/configuracoes'
     | '/contas'
     | '/dashboard'
+    | '/metodos-pagamento'
     | '/movimentacoes'
     | '/nova'
     | '/orcamento'
@@ -160,6 +171,7 @@ export interface FileRouteTypes {
     | '/_app/configuracoes'
     | '/_app/contas'
     | '/_app/dashboard'
+    | '/_app/metodos-pagamento'
     | '/_app/movimentacoes'
     | '/_app/nova'
     | '/_app/orcamento'
@@ -225,6 +237,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/metodos-pagamento': {
+      id: '/_app/metodos-pagamento'
+      path: '/metodos-pagamento'
+      fullPath: '/metodos-pagamento'
+      preLoaderRoute: typeof AppMetodosPagamentoRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/movimentacoes': {
       id: '/_app/movimentacoes'
       path: '/movimentacoes'
@@ -268,6 +287,7 @@ interface AppRouteChildren {
   AppConfiguracoesRoute: typeof AppConfiguracoesRoute
   AppContasRoute: typeof AppContasRoute
   AppDashboardRoute: typeof AppDashboardRoute
+  AppMetodosPagamentoRoute: typeof AppMetodosPagamentoRoute
   AppMovimentacoesRoute: typeof AppMovimentacoesRoute
   AppNovaRoute: typeof AppNovaRoute
   AppOrcamentoRoute: typeof AppOrcamentoRoute
@@ -279,6 +299,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppConfiguracoesRoute: AppConfiguracoesRoute,
   AppContasRoute: AppContasRoute,
   AppDashboardRoute: AppDashboardRoute,
+  AppMetodosPagamentoRoute: AppMetodosPagamentoRoute,
   AppMovimentacoesRoute: AppMovimentacoesRoute,
   AppNovaRoute: AppNovaRoute,
   AppOrcamentoRoute: AppOrcamentoRoute,

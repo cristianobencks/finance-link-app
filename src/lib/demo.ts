@@ -59,7 +59,7 @@ function upsert(list: Row[], idKey: string, row: Row) {
   if (i >= 0) list[i] = { ...list[i], ...clean, UpdatedAt: ts };
   else list.push({ ...clean, CreatedAt: ts, UpdatedAt: ts });
 }
-const S = () => { demoData(); return store as unknown as { transactions: Row[]; categories: Row[]; subcategories: Row[]; accounts: Row[]; budgets: Row[] }; };
+const S = () => { demoData(); return store as unknown as { transactions: Row[]; categories: Row[]; subcategories: Row[]; accounts: Row[]; budgets: Row[]; settings: Record<string, string> }; };
 const ok = { ok: true as const };
 
 /** Demo handlers, same input shape as the server functions. */
@@ -80,6 +80,7 @@ export const demo = {
   },
   saveCategory: async ({ data }: { data: Row }) => { upsert(S().categories, "CategoryId", data); return ok; },
   saveSubcategory: async ({ data }: { data: Row }) => { upsert(S().subcategories, "SubcategoryId", data); return ok; },
+  saveSetting: async ({ data }: { data: Row }) => { S().settings[data.SettingKey] = data.SettingValue; return ok; },
   saveAccount: async ({ data }: { data: Row }) => { upsert(S().accounts, "AccountId", data); return ok; },
   saveBudget: async ({ data }: { data: Row }) => { upsert(S().budgets, "BudgetId", data); return ok; },
   deleteBudget: async ({ data }: { data: Row }) => { const s = S(); s.budgets = s.budgets.filter((b) => b.BudgetId !== data.BudgetId); return ok; },

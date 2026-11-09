@@ -1,5 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { ExternalLink } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ExternalLink, Tags, Landmark, CreditCard } from "lucide-react";
 import { useFinanceQuery } from "@/hooks/use-finance";
 import { PageHeader, Panel } from "@/components/app/ui";
 import { SetupPanel } from "@/components/app/SetupPanel";
@@ -22,6 +22,11 @@ function SettingsPage() {
   return (
     <>
       <PageHeader title="Configurações" subtitle="Formato regional: Português (Portugal) · EUR (€) · DD/MM/AAAA · Europe/Lisbon" />
+      <div className="mb-4 grid gap-3 sm:grid-cols-3">
+        {([["/categorias", "Categorias", Tags], ["/contas", "Contas", Landmark], ["/metodos-pagamento", "Métodos de pagamento", CreditCard]] as const).map(([to, label, Icon]) => (
+          <Link key={to} to={to} className="flex items-center gap-3 rounded-2xl border bg-card p-4 text-sm font-medium shadow-card hover:border-primary"><Icon className="h-5 w-5 text-primary" />{label}</Link>
+        ))}
+      </div>
       <div className="grid gap-4 xl:grid-cols-2">
         <Panel title="Google Sheets">
           <p className="text-sm text-muted-foreground">Estado: <span className="font-medium text-income">Ligado</span> · {d?.transactions.length ?? 0} movimentações, {d?.categories.length ?? 0} categorias, {d?.accounts.length ?? 0} contas.</p>
