@@ -84,7 +84,7 @@ export const getFinanceData = createServerFn({ method: "POST" })
         accounts: rows("Accounts").map((r) => ({ ...r, OpeningBalance: num(r.OpeningBalance), Active: bool(r.Active) })) as FinanceData["accounts"],
         budgets: rows("Budgets").map((r) => ({ ...r, BudgetAmount: num(r.BudgetAmount) })) as FinanceData["budgets"],
         settings: Object.fromEntries(
-          rows("Settings").filter((r) => r.SettingKey !== "OwnerUserId" && r.SettingKey !== "AllowedEmails" && !(r.SettingKey ?? "").startsWith("Sheet:")).map((r) => [r.SettingKey, r.SettingValue]),
+          rows("Settings").filter((r) => r.SettingKey !== "OwnerUserId" && r.SettingKey !== "AllowedEmails" && !/^(Sheet|Telegram|TgCode):/.test(r.SettingKey ?? "")).map((r) => [r.SettingKey, r.SettingValue]),
         ),
       };
     });
@@ -259,3 +259,46 @@ export const saveSetting = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => guarded(context as Ctx, async (sid, isOwner) => (await import("./sheets.server")).upsert(sid, "Settings", data)));
 
 export { TX_TYPES };
+
+/** Telegram quick-entry: one-time 6-digit link code (15 min) stored in master Settings as TgCode:<code>. */
+export const createTelegramCode = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) =>
+    guarded(context as Ctx, async () => {
+      const s = await import("./sheets.server");
+      const master = s.masterSpreadsheetId();
+      const uid = (context as Ctx).userId;
+      const t = await s.readTable(master, "Settings");
+      const stale = t.rows.map((r) => r.obj).filter((r) => r.SettingKey?.startsWith("TgCode:") && (r.SettingValue?.startsWith(uid + "|") || Number(r.SettingValue?.split("|")[1]) < Date.now())).map((r) => r.SettingKey!);
+      if (stale.length) await s.deleteWhere(master, "Settings", "SettingKey", stale);
+      const buf = new Uint32Array(1);
+      crypto.getRandomValues(buf);
+      const code = String(100000 + ((buf[0] ?? 0) % 900000));
+      const expiresAt = Date.now() + 15 * 60_000;
+      await s.upsert(master, "Settings", { SettingKey: `TgCode:${code}`, SettingValue: `${uid}|${expiresAt}` });
+      return { code, expiresAt, bot: "Evoluax_bot" };
+    }),
+  );
+
+export const getTelegramStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) =>
+    guarded(context as Ctx, async () => {
+      const s = await import("./sheets.server");
+      const t = await s.readTable(s.masterSpreadsheetId(), "Settings");
+      return { linked: t.rows.some((r) => r.obj.SettingKey?.startsWith("Telegram:") && r.obj.SettingValue === (context as Ctx).userId), bot: "Evoluax_bot" };
+    }),
+  );
+
+export const unlinkTelegram = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) =>
+    guarded(context as Ctx, async () => {
+      const s = await import("./sheets.server");
+      const master = s.masterSpreadsheetId();
+      const t = await s.readTable(master, "Settings");
+      const keys = t.rows.filter((r) => r.obj.SettingKey?.startsWith("Telegram:") && r.obj.SettingValue === (context as Ctx).userId).map((r) => r.obj.SettingKey!);
+      if (keys.length) await s.deleteWhere(master, "Settings", "SettingKey", keys);
+      return { removed: keys.length };
+    }),
+  );
