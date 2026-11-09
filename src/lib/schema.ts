@@ -34,7 +34,7 @@ export const PAYMENT_METHODS = ["Transferência bancária", "Transferência inte
 
 /** Payment methods are user-managed, stored in Settings as PaymentMethods (one per line); falls back to defaults. */
 export function paymentMethods(settings: Record<string, string> | undefined): string[] {
-  const v = settings?.PaymentMethods;
+  const v = settings?.["PaymentMethods"];
   if (v === undefined) return [...PAYMENT_METHODS];
   return v.split("\n").map((x) => x.trim()).filter(Boolean);
 }
