@@ -32,6 +32,13 @@ export const RECURRENCES = ["Não recorrente", "Semanal", "Mensal", "Anual"] as 
 export const ACCOUNT_TYPES = ["Conta bancária", "Dinheiro", "Cartão de débito", "Cartão de crédito", "Outra"] as const;
 export const PAYMENT_METHODS = ["Transferência bancária", "Transferência internacional", "MB Way", "Multibanco", "Cartão", "Numerário", "Débito direto", "Outro"] as const;
 
+/** Payment methods are user-managed, stored in Settings as PaymentMethods (one per line); falls back to defaults. */
+export function paymentMethods(settings: Record<string, string> | undefined): string[] {
+  const v = settings?.PaymentMethods;
+  if (v === undefined) return [...PAYMENT_METHODS];
+  return v.split("\n").map((x) => x.trim()).filter(Boolean);
+}
+
 export type Transaction = {
   TransactionId: string; Type: (typeof TX_TYPES)[number]; Description: string; Amount: number;
   TransactionDate: string; DueDate: string; CategoryId: string; SubcategoryId: string;

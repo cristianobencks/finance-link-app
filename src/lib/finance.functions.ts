@@ -255,7 +255,7 @@ export const deleteBudget = createServerFn({ method: "POST" })
 
 export const saveSetting = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ SettingKey: z.string().regex(/^[A-Za-z]+$/).refine((k) => k !== "OwnerUserId"), SettingValue: z.string().max(200) }).parse(d))
+  .inputValidator((d: unknown) => z.object({ SettingKey: z.string().regex(/^[A-Za-z]+$/).refine((k) => k !== "OwnerUserId"), SettingValue: z.string().max(4000) }).parse(d))
   .handler(async ({ data, context }) => guarded(context as Ctx, async (sid, isOwner) => (await import("./sheets.server")).upsert(sid, "Settings", data)));
 
 export { TX_TYPES };

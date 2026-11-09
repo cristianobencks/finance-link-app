@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PAYMENT_METHODS, RECURRENCES, type Transaction } from "@/lib/schema";
+import { paymentMethods, RECURRENCES, type Transaction } from "@/lib/schema";
 import { newId, todayLisbon } from "@/lib/finance";
 import { cn } from "@/lib/utils";
 
@@ -155,7 +155,7 @@ function TxForm({ editing }: { editing: Transaction | undefined }) {
               </>
             ) : (
               <>
-                <Field label={kind === "Receita" ? "Método de recebimento" : "Método de pagamento"}><Select value={f.PaymentMethod} onValueChange={set("PaymentMethod")}><SelectTrigger><SelectValue placeholder="Escolher" /></SelectTrigger><SelectContent>{PAYMENT_METHODS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent></Select></Field>
+                <Field label={kind === "Receita" ? "Método de recebimento" : "Método de pagamento"}><Select value={f.PaymentMethod} onValueChange={set("PaymentMethod")}><SelectTrigger><SelectValue placeholder="Escolher" /></SelectTrigger><SelectContent>{[...new Set([...paymentMethods(d.settings), ...(f.PaymentMethod ? [f.PaymentMethod] : [])])].map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent></Select></Field>
                 <Field label="Recorrência"><Select value={f.Recurrence} onValueChange={set("Recurrence")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{RECURRENCES.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent></Select></Field>
               </>
             )}
