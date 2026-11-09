@@ -29,6 +29,23 @@ function Field({ label, error, children, className }: { label: string; error?: s
   return <div className={cn("space-y-1.5", className)}><Label>{label}</Label>{children}{error && <p className="text-xs text-destructive">{error}</p>}</div>;
 }
 
+/** Text date field in DD/MM/AAAA; emits ISO (AAAA-MM-DD) or "" while incomplete/invalid. */
+function DateInput({ value, onChange }: { value: string; onChange: (iso: string) => void }) {
+  const toText = (iso: string) => (/^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "");
+  const [text, setText] = useState(() => toText(value));
+  function change(raw: string) {
+    const digits = raw.replace(/\D/g, "").slice(0, 8);
+    const t = [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4, 8)].filter(Boolean).join("/");
+    setText(t);
+    if (digits.length === 8) {
+      const iso = `${digits.slice(4, 8)}-${digits.slice(2, 4)}-${digits.slice(0, 2)}`;
+      const dt = new Date(`${iso}T00:00:00Z`);
+      onChange(!isNaN(dt.getTime()) && dt.toISOString().slice(0, 10) === iso ? iso : "");
+    } else onChange("");
+  }
+  return <Input inputMode="numeric" placeholder="DD/MM/AAAA" value={text} onChange={(e) => change(e.target.value)} maxLength={10} />;
+}
+
 function NewTx() {
   const d = useFinance();
   const { id } = Route.useSearch();
@@ -112,16 +129,10 @@ function TxForm({ editing }: { editing: Transaction | undefined }) {
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Descrição *" error={errors.Description} className="sm:col-span-2"><Input value={f.Description} onChange={(e) => set("Description")(e.target.value)} maxLength={200} /></Field>
             <Field label="Valor (€) *" error={errors.Amount}><Input inputMode="decimal" placeholder="0,00" value={f.Amount} onChange={(e) => set("Amount")(e.target.value)} /></Field>
-            <Field label="Data *" error={errors.TransactionDate}><Input type="date" value={f.TransactionDate} onChange={(e) => set("TransactionDate")(e.target.value)} /></Field>
-            <Field label={kind === "Transferência" ? "Conta de origem *" : "Conta *"} error={errors.AccountId}>
-              <Select value={f.AccountId} onValueChange={set("AccountId")}><SelectTrigger><SelectValue placeholder={accounts.length ? "Escolher" : "Crie primeiro uma conta"} /></SelectTrigger><SelectContent>{accounts.map((a) => <SelectItem key={a.AccountId} value={a.AccountId}>{a.Name}</SelectItem>)}</SelectContent></Select>
-            </Field>
-            {kind === "Transferência" ? (
-              <Field label="Conta de destino *" error={errors.ToAccountId}>
-                <Select value={f.ToAccountId} onValueChange={set("ToAccountId")}><SelectTrigger><SelectValue placeholder="Escolher" /></SelectTrigger><SelectContent>{accounts.map((a) => <SelectItem key={a.AccountId} value={a.AccountId}>{a.Name}</SelectItem>)}</SelectContent></Select>
-              </Field>
-            ) : (
+            <Field label="Data *" error={errors.TransactionDate}><DateInput value={f.TransactionDate} onChange={set("TransactionDate")} /></Field>
+            {kind !== "Transferência" && (
               <>
+                <Field label="Data de vencimento"><DateInput value={f.DueDate} onChange={set("DueDate")} /></Field>
                 <Field label="Status"><Select value={f.Status} onValueChange={set("Status")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{statuses.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></Field>
                 <Field label="Categoria *" error={errors.CategoryId}>
                   <Select value={f.CategoryId} onValueChange={set("CategoryId")}><SelectTrigger><SelectValue placeholder="Escolher" /></SelectTrigger><SelectContent>{cats.map((c) => <SelectItem key={c.CategoryId} value={c.CategoryId}>{c.Name}</SelectItem>)}</SelectContent></Select>
@@ -129,15 +140,26 @@ function TxForm({ editing }: { editing: Transaction | undefined }) {
                 <Field label="Subcategoria">
                   <Select value={f.SubcategoryId} onValueChange={set("SubcategoryId")} disabled={!subs.length}><SelectTrigger><SelectValue placeholder={f.CategoryId ? (subs.length ? "Escolher" : "Sem subcategorias") : "Escolha a categoria"} /></SelectTrigger><SelectContent>{subs.map((s) => <SelectItem key={s.SubcategoryId} value={s.SubcategoryId}>{s.Name}</SelectItem>)}</SelectContent></Select>
                 </Field>
-                <Field label="Data de vencimento"><Input type="date" value={f.DueDate} onChange={(e) => set("DueDate")(e.target.value)} /></Field>
+                {kind === "Despesa" && <Field label="Foto da despesa" className="sm:col-span-2"><ReceiptField value={f.Attachment} onChange={set("Attachment")} txId={txId} disabled={isDemo()} /></Field>}
+              </>
+            )}
+            <Field label={kind === "Transferência" ? "Conta de origem *" : "Conta *"} error={errors.AccountId}>
+              <Select value={f.AccountId} onValueChange={set("AccountId")}><SelectTrigger><SelectValue placeholder={accounts.length ? "Escolher" : "Crie primeiro uma conta"} /></SelectTrigger><SelectContent>{accounts.map((a) => <SelectItem key={a.AccountId} value={a.AccountId}>{a.Name}</SelectItem>)}</SelectContent></Select>
+            </Field>
+            {kind === "Transferência" ? (
+              <>
+                <Field label="Conta de destino *" error={errors.ToAccountId}>
+                  <Select value={f.ToAccountId} onValueChange={set("ToAccountId")}><SelectTrigger><SelectValue placeholder="Escolher" /></SelectTrigger><SelectContent>{accounts.map((a) => <SelectItem key={a.AccountId} value={a.AccountId}>{a.Name}</SelectItem>)}</SelectContent></Select>
+                </Field>
+                <Field label="Status"><Select value={f.Status} onValueChange={set("Status")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{statuses.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></Field>
+              </>
+            ) : (
+              <>
                 <Field label={kind === "Receita" ? "Método de recebimento" : "Método de pagamento"}><Select value={f.PaymentMethod} onValueChange={set("PaymentMethod")}><SelectTrigger><SelectValue placeholder="Escolher" /></SelectTrigger><SelectContent>{PAYMENT_METHODS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent></Select></Field>
-                <Field label="Natureza"><Select value={f.Nature} onValueChange={set("Nature")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{NATURES.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent></Select></Field>
                 <Field label="Recorrência"><Select value={f.Recurrence} onValueChange={set("Recurrence")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{RECURRENCES.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent></Select></Field>
               </>
             )}
-            {kind === "Transferência" && <Field label="Status"><Select value={f.Status} onValueChange={set("Status")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{statuses.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></Field>}
             <Field label="Observações" className="sm:col-span-2"><Textarea value={f.Notes} onChange={(e) => set("Notes")(e.target.value)} maxLength={1000} /></Field>
-            {kind === "Despesa" && <Field label="Foto da despesa" className="sm:col-span-2"><ReceiptField value={f.Attachment} onChange={set("Attachment")} txId={txId} disabled={isDemo()} /></Field>}
           </div>
           <div className="mt-6 flex gap-2">
             <Button type="submit" disabled={pending}>{pending && <Loader2 className="h-4 w-4 animate-spin" />}{pending ? "A gravar…" : "Guardar"}</Button>

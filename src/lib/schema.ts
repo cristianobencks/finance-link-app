@@ -30,7 +30,7 @@ export const TX_STATUS = ["Pendente", "Pago", "Recebido", "Cancelado"] as const;
 export const NATURES = ["Fixa", "Variável", "Pontual"] as const;
 export const RECURRENCES = ["Não recorrente", "Semanal", "Mensal", "Anual"] as const;
 export const ACCOUNT_TYPES = ["Conta bancária", "Dinheiro", "Cartão de débito", "Cartão de crédito", "Outra"] as const;
-export const PAYMENT_METHODS = ["Transferência bancária", "MB Way", "Multibanco", "Cartão", "Numerário", "Débito direto", "Outro"] as const;
+export const PAYMENT_METHODS = ["Transferência bancária", "Transferência internacional", "MB Way", "Multibanco", "Cartão", "Numerário", "Débito direto", "Outro"] as const;
 
 export type Transaction = {
   TransactionId: string; Type: (typeof TX_TYPES)[number]; Description: string; Amount: number;
