@@ -4,7 +4,7 @@ import { demo, isDemo } from "@/lib/demo";
 import { ReceiptField } from "@/components/app/ReceiptField";
 import { useEffect, useMemo, useState } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { fmtDate, fmtEUR } from "@/lib/finance";
+
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
 import { useFinance, useMutate } from "@/hooks/use-finance";
@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { paymentMethods, RECURRENCES, type Transaction } from "@/lib/schema";
-import { newId, todayLisbon } from "@/lib/finance";
+import { fmtDate, fmtEUR, newId, todayLisbon } from "@/lib/finance";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/nova")({
