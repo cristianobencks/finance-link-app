@@ -69,7 +69,7 @@ function TxForm({ editing }: { editing: Transaction | undefined }) {
   const [txId] = useState(() => editing?.TransactionId ?? newId("tx"));
   const [groupId] = useState(() => newId("tr"));
   const [f, setF] = useState({
-    Description: editing?.Description ?? "", Amount: editing ? String(editing.Amount).replace(".", ",") : "",
+    Description: editing?.Description ?? "", Amount: editing ? editing.Amount.toFixed(2).replace(".", ",") : "",
     TransactionDate: editing?.TransactionDate ?? todayLisbon(), DueDate: editing?.DueDate ?? "",
     CategoryId: editing?.CategoryId ?? "", SubcategoryId: editing?.SubcategoryId ?? "", AccountId: editing?.AccountId ?? "",
     ToAccountId: "", PaymentMethod: editing?.PaymentMethod ?? "", Status: (editing?.Status ?? "Pago") as string,
@@ -139,7 +139,7 @@ function TxForm({ editing }: { editing: Transaction | undefined }) {
             {kind === "Despesa" && <Field label="Foto da despesa" className="sm:col-span-2"><ReceiptField value={f.Attachment} onChange={set("Attachment")} txId={txId} disabled={isDemo()}
               cats={d.categories.filter((c) => c.Type === "Despesa" && c.Active).map((c) => ({ id: c.CategoryId, name: c.Name }))}
               subs={d.subcategories.filter((s) => s.Active).map((s) => ({ id: s.SubcategoryId, name: s.Name, categoryId: s.CategoryId }))}
-              onRead={(r) => setF((p) => ({ ...p, Description: r.description || p.Description, Amount: String(r.amount).replace(".", ","), TransactionDate: r.date || p.TransactionDate, CategoryId: r.categoryId || p.CategoryId, SubcategoryId: r.categoryId ? r.subcategoryId : p.SubcategoryId }))} /></Field>}
+              onRead={(r) => setF((p) => ({ ...p, Description: r.description || p.Description, Amount: r.amount.toFixed(2).replace(".", ","), TransactionDate: r.date || p.TransactionDate, CategoryId: r.categoryId || p.CategoryId, SubcategoryId: r.categoryId ? r.subcategoryId : p.SubcategoryId }))} /></Field>}
             <Field label="Descrição *" error={errors.Description} className="sm:col-span-2"><Input value={f.Description} onChange={(e) => set("Description")(e.target.value)} maxLength={200} /></Field>
             <Field label="Valor (€) *" error={errors.Amount}><Input inputMode="decimal" placeholder="0,00" value={f.Amount} onChange={(e) => set("Amount")(e.target.value)} /></Field>
             <Field label="Data *" error={errors.TransactionDate}><DateInput value={f.TransactionDate} onChange={set("TransactionDate")} /></Field>
