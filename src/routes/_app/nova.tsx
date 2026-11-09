@@ -2,7 +2,9 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { demo, isDemo } from "@/lib/demo";
 import { ReceiptField } from "@/components/app/ReceiptField";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
 import { useFinance, useMutate } from "@/hooks/use-finance";
@@ -14,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { paymentMethods, RECURRENCES, type Transaction } from "@/lib/schema";
-import { newId, todayLisbon } from "@/lib/finance";
+import { fmtDate, fmtEUR, newId, todayLisbon } from "@/lib/finance";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/nova")({
@@ -33,6 +35,8 @@ function Field({ label, error, children, className }: { label: string; error?: s
 function DateInput({ value, onChange }: { value: string; onChange: (iso: string) => void }) {
   const toText = (iso: string) => (/^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "");
   const [text, setText] = useState(() => toText(value));
+  // Sync when the value is set from outside (e.g. AI reading a receipt).
+  useEffect(() => { if (value && toText(value) !== text) setText(toText(value)); }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
   function change(raw: string) {
     const digits = raw.replace(/\D/g, "").slice(0, 8);
     const t = [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4, 8)].filter(Boolean).join("/");
@@ -74,6 +78,7 @@ function TxForm({ editing }: { editing: Transaction | undefined }) {
   });
   type ErrKey = "Description" | "Amount" | "TransactionDate" | "AccountId" | "ToAccountId" | "CategoryId";
   const [errors, setErrors] = useState<Partial<Record<ErrKey, string>>>({});
+  const [confirm, setConfirm] = useState<number | null>(null);
   const set = (k: keyof typeof f) => (v: string) => setF((p) => ({ ...p, [k]: v, ...(k === "CategoryId" ? { SubcategoryId: "" } : {}) }));
 
   const cats = useMemo(() => d.categories.filter((c) => c.Type === kind && (c.Active || c.CategoryId === f.CategoryId)).sort((a, b) => a.Name.localeCompare(b.Name)), [d, kind, f.CategoryId]);
@@ -101,7 +106,11 @@ function TxForm({ editing }: { editing: Transaction | undefined }) {
     } else if (!f.CategoryId) err.CategoryId = "Escolha uma categoria.";
     setErrors(err);
     if (Object.keys(err).length) return;
+    setConfirm(amount);
+  }
 
+  async function save(amount: number) {
+    setConfirm(null);
     const ok = kind === "Transferência"
       ? await tr.run({ TransferGroupId: groupId, FromAccountId: f.AccountId, ToAccountId: f.ToAccountId, Amount: amount, TransactionDate: f.TransactionDate, Description: f.Description, Status: f.Status as "Efetuada", Notes: f.Notes }, "Transferência registada no Google Sheets")
       : await tx.run({
@@ -127,6 +136,10 @@ function TxForm({ editing }: { editing: Transaction | undefined }) {
             </div>
           )}
           <div className="grid gap-4 sm:grid-cols-2">
+            {kind === "Despesa" && <Field label="Foto da despesa" className="sm:col-span-2"><ReceiptField value={f.Attachment} onChange={set("Attachment")} txId={txId} disabled={isDemo()}
+              cats={d.categories.filter((c) => c.Type === "Despesa" && c.Active).map((c) => ({ id: c.CategoryId, name: c.Name }))}
+              subs={d.subcategories.filter((s) => s.Active).map((s) => ({ id: s.SubcategoryId, name: s.Name, categoryId: s.CategoryId }))}
+              onRead={(r) => setF((p) => ({ ...p, Description: r.description || p.Description, Amount: String(r.amount).replace(".", ","), TransactionDate: r.date || p.TransactionDate, CategoryId: r.categoryId || p.CategoryId, SubcategoryId: r.categoryId ? r.subcategoryId : p.SubcategoryId }))} /></Field>}
             <Field label="Descrição *" error={errors.Description} className="sm:col-span-2"><Input value={f.Description} onChange={(e) => set("Description")(e.target.value)} maxLength={200} /></Field>
             <Field label="Valor (€) *" error={errors.Amount}><Input inputMode="decimal" placeholder="0,00" value={f.Amount} onChange={(e) => set("Amount")(e.target.value)} /></Field>
             <Field label="Data *" error={errors.TransactionDate}><DateInput value={f.TransactionDate} onChange={set("TransactionDate")} /></Field>
@@ -140,7 +153,6 @@ function TxForm({ editing }: { editing: Transaction | undefined }) {
                 <Field label="Subcategoria">
                   <Select value={f.SubcategoryId} onValueChange={set("SubcategoryId")} disabled={!subs.length}><SelectTrigger><SelectValue placeholder={f.CategoryId ? (subs.length ? "Escolher" : "Sem subcategorias") : "Escolha a categoria"} /></SelectTrigger><SelectContent>{subs.map((s) => <SelectItem key={s.SubcategoryId} value={s.SubcategoryId}>{s.Name}</SelectItem>)}</SelectContent></Select>
                 </Field>
-                {kind === "Despesa" && <Field label="Foto da despesa" className="sm:col-span-2"><ReceiptField value={f.Attachment} onChange={set("Attachment")} txId={txId} disabled={isDemo()} /></Field>}
               </>
             )}
             <Field label={kind === "Transferência" ? "Conta de origem *" : "Conta *"} error={errors.AccountId}>
@@ -167,6 +179,22 @@ function TxForm({ editing }: { editing: Transaction | undefined }) {
           </div>
         </Panel>
       </form>
+      <AlertDialog open={confirm !== null} onOpenChange={(o) => !o && setConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar gravação?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {kind}: {f.Description} — {fmtEUR(confirm ?? 0)} em {f.TransactionDate ? fmtDate(f.TransactionDate) : ""}
+              {kind !== "Transferência" && <> · {d.categories.find((c) => c.CategoryId === f.CategoryId)?.Name ?? ""}</>}
+              {" "}· {d.accounts.find((a) => a.AccountId === f.AccountId)?.Name ?? ""} · {f.Status}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Rever</AlertDialogCancel>
+            <AlertDialogAction onClick={() => confirm !== null && save(confirm)}>Confirmar e guardar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

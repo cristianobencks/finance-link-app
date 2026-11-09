@@ -3,7 +3,7 @@ import { ImagePlus, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
-import { getReceipt, uploadReceipt } from "@/lib/receipts.functions";
+import { getReceipt, interpretReceipt, uploadReceipt } from "@/lib/receipts.functions";
 
 const MAX = 8 * 1024 * 1024;
 const isTiffUrl = (u: string | null) => !!u && u.startsWith("data:image/tiff");
@@ -29,9 +29,13 @@ const toBase64 = (f: File) => new Promise<string>((res, rej) => {
 });
 
 /** Upload/preview of an expense photo stored in Google Drive. Value is "drive:<fileId>" ("" = none). */
-export function ReceiptField({ value, onChange, txId, disabled }: { value: string; onChange: (v: string) => void; txId: string; disabled?: boolean }) {
+export type ReceiptRead = { amount: number; description: string; date: string; categoryId: string; subcategoryId: string };
+
+export function ReceiptField({ value, onChange, disabled, onRead, cats, subs }: { value: string; onChange: (v: string) => void; txId?: string; disabled?: boolean; onRead?: (r: ReceiptRead) => void; cats?: { id: string; name: string }[]; subs?: { id: string; name: string; categoryId: string }[] }) {
   const input = useRef<HTMLInputElement>(null);
   const upload = useServerFn(uploadReceipt);
+  const interpret = useServerFn(interpretReceipt);
+  const [reading, setReading] = useState(false);
   const [busy, setBusy] = useState(false);
   const url = useReceiptUrl(value || undefined);
   const isTiff = isTiffUrl(url);
@@ -46,13 +50,23 @@ export function ReceiptField({ value, onChange, txId, disabled }: { value: strin
       const parts = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Lisbon", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).formatToParts(new Date());
       const p = (t: string) => parts.find((x) => x.type === t)?.value ?? "";
       const name = `despesa-${p("year")}-${p("month")}-${p("day")}-${p("hour")}${p("minute")}${p("second")}.${ext}`;
-      const { path } = await upload({ data: { name, mime: file.type, base64: await toBase64(file) } });
+      const base64 = await toBase64(file);
+      const canRead = onRead && cats && /^image\/(jpeg|png|webp|gif)$/.test(file.type);
+      if (canRead) setReading(true);
+      const ai = canRead
+        ? interpret({ data: { mime: file.type, base64, cats, subs: subs ?? [] } }).then((r) => r.result).catch(() => null)
+        : Promise.resolve(null);
+      const { path } = await upload({ data: { name, mime: file.type, base64 } });
       onChange(path);
-      toast.success("Foto anexada. Guarde a movimentação para a associar.");
+      const r = await ai;
+      setReading(false);
+      if (r) { onRead!(r); toast.success("Foto anexada e campos preenchidos pela IA. Reveja antes de guardar."); }
+      else toast.success(canRead ? "Foto anexada. A IA não conseguiu ler o talão — preencha os campos." : "Foto anexada. Guarde a movimentação para a associar.");
     } catch (e) {
       toast.error(`Não foi possível enviar a foto: ${e instanceof Error ? e.message : "erro"}`);
     } finally {
       setBusy(false);
+      setReading(false);
       if (input.current) input.current.value = "";
     }
   }
@@ -72,7 +86,7 @@ export function ReceiptField({ value, onChange, txId, disabled }: { value: strin
         </div>
       ) : (
         <Button type="button" variant="outline" onClick={() => input.current?.click()} disabled={busy}>
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}{busy ? "A enviar…" : "Anexar foto"}
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}{reading ? "A interpretar talão com IA…" : busy ? "A enviar…" : "Anexar foto"}
         </Button>
       )}
     </div>
