@@ -17,3 +17,4 @@
 - Pure finance calculations live in `src/lib/finance.ts` with tests in `src/test/finance.test.ts`. Why: dashboard rules must be verifiable.
 - Expense photos are stored in a Google Drive folder of the connected account (server-only `src/lib/receipts.functions.ts`); transactions keep `drive:<fileId>` in the Attachment column and reads check the file's appProperties.userId. Why: keep all data in the Google account, per-user isolation.
 - Telegram quick-entry: webhook `src/routes/api/public/telegram/webhook.ts` (secret header derived from TELEGRAM_API_KEY); link codes `TgCode:<code>` and chat links `Telegram:<chatId>` live in master Settings; parsing in `src/lib/telegram.ts`. Why: no extra database, retries idempotent via `tg-<chat>-<update>` IDs.
+- Telegram photos/PDFs are read by AI in server-only `src/lib/receipt-ai.server.ts` (Lovable AI Gateway SDK) and saved as expenses with the file in the Drive receipts folder. Why: quick receipt capture without a database.
