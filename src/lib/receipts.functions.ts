@@ -37,6 +37,20 @@ export const uploadReceipt = createServerFn({ method: "POST" })
     return { path: `drive:${id}` };
   });
 
+// AI reads an attached receipt photo to pre-fill the expense form (nothing is saved here).
+export const interpretReceipt = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({
+    mime: z.string().regex(/^image\/(jpeg|png|webp|gif)$/),
+    base64: z.string().max(11_000_000),
+    cats: z.array(z.object({ id: z.string(), name: z.string() })).max(300),
+    subs: z.array(z.object({ id: z.string(), name: z.string(), categoryId: z.string() })).max(1000),
+  }).parse(d))
+  .handler(async ({ data }) => {
+    const { readReceipt } = await import("@/lib/receipt-ai.server");
+    return { result: await readReceipt(data.mime, data.base64, data.cats, data.subs) };
+  });
+
 export const getReceipt = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ path: z.string().regex(/^drive:[\w-]+$/) }).parse(d))

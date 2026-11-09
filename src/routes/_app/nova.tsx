@@ -127,6 +127,10 @@ function TxForm({ editing }: { editing: Transaction | undefined }) {
             </div>
           )}
           <div className="grid gap-4 sm:grid-cols-2">
+            {kind === "Despesa" && <Field label="Foto da despesa" className="sm:col-span-2"><ReceiptField value={f.Attachment} onChange={set("Attachment")} txId={txId} disabled={isDemo()}
+              cats={d.categories.filter((c) => c.Type === "Despesa" && c.Active).map((c) => ({ id: c.CategoryId, name: c.Name }))}
+              subs={d.subcategories.filter((s) => s.Active).map((s) => ({ id: s.SubcategoryId, name: s.Name, categoryId: s.CategoryId }))}
+              onRead={(r) => setF((p) => ({ ...p, Description: r.description || p.Description, Amount: String(r.amount).replace(".", ","), TransactionDate: r.date || p.TransactionDate, CategoryId: r.categoryId || p.CategoryId, SubcategoryId: r.categoryId ? r.subcategoryId : p.SubcategoryId }))} /></Field>}
             <Field label="Descrição *" error={errors.Description} className="sm:col-span-2"><Input value={f.Description} onChange={(e) => set("Description")(e.target.value)} maxLength={200} /></Field>
             <Field label="Valor (€) *" error={errors.Amount}><Input inputMode="decimal" placeholder="0,00" value={f.Amount} onChange={(e) => set("Amount")(e.target.value)} /></Field>
             <Field label="Data *" error={errors.TransactionDate}><DateInput value={f.TransactionDate} onChange={set("TransactionDate")} /></Field>
@@ -140,7 +144,6 @@ function TxForm({ editing }: { editing: Transaction | undefined }) {
                 <Field label="Subcategoria">
                   <Select value={f.SubcategoryId} onValueChange={set("SubcategoryId")} disabled={!subs.length}><SelectTrigger><SelectValue placeholder={f.CategoryId ? (subs.length ? "Escolher" : "Sem subcategorias") : "Escolha a categoria"} /></SelectTrigger><SelectContent>{subs.map((s) => <SelectItem key={s.SubcategoryId} value={s.SubcategoryId}>{s.Name}</SelectItem>)}</SelectContent></Select>
                 </Field>
-                {kind === "Despesa" && <Field label="Foto da despesa" className="sm:col-span-2"><ReceiptField value={f.Attachment} onChange={set("Attachment")} txId={txId} disabled={isDemo()} /></Field>}
               </>
             )}
             <Field label={kind === "Transferência" ? "Conta de origem *" : "Conta *"} error={errors.AccountId}>
