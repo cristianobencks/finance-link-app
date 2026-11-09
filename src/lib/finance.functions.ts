@@ -273,7 +273,7 @@ export const createTelegramCode = createServerFn({ method: "POST" })
       if (stale.length) await s.deleteWhere(master, "Settings", "SettingKey", stale);
       const buf = new Uint32Array(1);
       crypto.getRandomValues(buf);
-      const code = String(100000 + (buf[0] % 900000));
+      const code = String(100000 + ((buf[0] ?? 0) % 900000));
       const expiresAt = Date.now() + 15 * 60_000;
       await s.upsert(master, "Settings", { SettingKey: `TgCode:${code}`, SettingValue: `${uid}|${expiresAt}` });
       return { code, expiresAt, bot: "Evoluax_bot" };

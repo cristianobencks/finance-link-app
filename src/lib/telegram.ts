@@ -7,7 +7,7 @@ export function parseExpenseMessage(text: string): ParsedExpense | null {
   const t = text.trim();
   const m = t.match(/(?:^|\s)€?\s*(\d{1,9}(?:[.,]\d{1,2})?)\s*(?:€|eur|euros?)?(?=\s|$)/i);
   if (!m) return null;
-  const amount = Number(m[1].replace(",", "."));
+  const amount = Number((m[1] ?? "").replace(",", "."));
   if (!(amount > 0)) return null;
   let rest = (t.slice(0, m.index) + " " + t.slice((m.index ?? 0) + m[0].length)).replace(/\s+/g, " ").trim();
   const pending = /\bpendente\b/i.test(rest);
@@ -38,5 +38,5 @@ export function guessCategory(
 /** "/start 123456", "123456" or "123 456" → "123456". */
 export function extractLinkCode(text: string): string | null {
   const m = text.trim().match(/^(?:\/start\s+)?(\d{3})\s?(\d{3})$/);
-  return m ? m[1] + m[2] : null;
+  return m ? `${m[1]}${m[2]}` : null;
 }
