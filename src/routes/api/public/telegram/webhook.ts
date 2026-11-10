@@ -116,7 +116,12 @@ async function handleFile(updateId: number, chatId: number, userId: string, capt
   const sid = isOwner ? s.masterSpreadsheetId() : get(`Sheet:${userId}`);
   if (!sid) return t.reply(chatId, "⚠️ A sua folha ainda não existe. Entre uma vez no EvoluaX e tente de novo.");
   await t.tg("sendChatAction", { chat_id: chatId, action: "typing" });
-  const [base64, all] = await Promise.all([t.downloadFile(file.id), s.readAll(sid)]);
+  let base64: string, all: Awaited<ReturnType<typeof s.readAll>>;
+  try { [base64, all] = await Promise.all([t.downloadFile(file.id), s.readAll(sid)]); }
+  catch (e) {
+    if (e instanceof t.FileMismatchError) return t.reply(chatId, "⚠️ Não consegui descarregar a sua foto corretamente. Nada foi registado. Tente novamente daqui a pouco.");
+    throw e;
+  }
   const active = (v?: string) => !v || v.toUpperCase() === "TRUE";
   const account = all.Accounts.rows.map((r) => r.obj).find((a) => active(a.Active));
   if (!account) return t.reply(chatId, "⚠️ Ainda não tem contas. Crie uma conta no EvoluaX primeiro.");
