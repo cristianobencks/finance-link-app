@@ -5,6 +5,7 @@ afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
 describe("Telegram media download isolation", () => {
   it("uses distinct uncached URLs even when Telegram reuses the same file path", async () => {
+    vi.stubEnv("TELEGRAM_BOT_TOKEN", "");
     vi.stubEnv("LOVABLE_API_KEY", "test-gateway");
     vi.stubEnv("TELEGRAM_API_KEY", "test-connection");
     const downloads: { url: string; init: RequestInit | undefined }[] = [];
