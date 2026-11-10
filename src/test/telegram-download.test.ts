@@ -7,7 +7,7 @@ describe("Telegram media download isolation", () => {
   it("uses distinct uncached URLs even when Telegram reuses the same file path", async () => {
     vi.stubEnv("LOVABLE_API_KEY", "test-gateway");
     vi.stubEnv("TELEGRAM_API_KEY", "test-connection");
-    const downloads: { url: string; init?: RequestInit }[] = [];
+    const downloads: { url: string; init: RequestInit | undefined }[] = [];
     vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
       if (url.endsWith("/getFile")) return Response.json({ ok: true, result: { file_path: "photos/file_0.jpg" } });
       downloads.push({ url, init });
