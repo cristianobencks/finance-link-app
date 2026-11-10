@@ -84,7 +84,7 @@ export const getFinanceData = createServerFn({ method: "POST" })
         accounts: rows("Accounts").map((r) => ({ ...r, OpeningBalance: num(r.OpeningBalance), Active: bool(r.Active) })) as FinanceData["accounts"],
         budgets: rows("Budgets").map((r) => ({ ...r, BudgetAmount: num(r.BudgetAmount) })) as FinanceData["budgets"],
         settings: Object.fromEntries(
-          rows("Settings").filter((r) => r.SettingKey !== "OwnerUserId" && r.SettingKey !== "AllowedEmails" && !/^(Sheet|Telegram|TgCode):/.test(r.SettingKey ?? "")).map((r) => [r.SettingKey, r.SettingValue]),
+          rows("Settings").filter((r) => r.SettingKey !== "OwnerUserId" && r.SettingKey !== "AllowedEmails" && !/^(Sheet|Telegram|TgCode|TgPending):/.test(r.SettingKey ?? "")).map((r) => [r.SettingKey, r.SettingValue]),
         ),
       };
     });
@@ -139,7 +139,18 @@ const txSchema = z.object({
   Notes: z.string().max(1000),
   Attachment: z.string().max(100).regex(/^(drive:[\w-]+)?$/).optional(),
   expectedUpdatedAt: z.string().optional(),
+  confirmedDuplicateIds: z.array(id).default([]),
 });
+
+export const checkExpenseDuplicates = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => txSchema.pick({ TransactionId: true, Type: true, Description: true, Amount: true, TransactionDate: true, Status: true }).parse(d))
+  .handler(async ({ data, context }) => guarded(context as Ctx, async (sid) => {
+    const s = await import("./sheets.server");
+    const { duplicateExpenses, expenseFromRow } = await import("./finance");
+    const table = await s.readTable(sid, "Transactions");
+    return duplicateExpenses(data, table.rows.map((r) => expenseFromRow(r.obj)));
+  }));
 
 export const saveTransaction = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -149,7 +160,15 @@ export const saveTransaction = createServerFn({ method: "POST" })
       const s = await import("./sheets.server");
       if (data.Type === "Receita" && data.Status === "Pago") throw new s.SheetsError("Uma receita não pode estar 'Pago'.", 400);
       if (data.Type === "Despesa" && data.Status === "Recebido") throw new s.SheetsError("Uma despesa não pode estar 'Recebido'.", 400);
-      const { expectedUpdatedAt, ...row } = data;
+      const { expectedUpdatedAt, confirmedDuplicateIds, ...row } = data;
+      if (data.Type === "Despesa" && data.Status !== "Cancelado") {
+        const { duplicateExpenses, expenseFromRow } = await import("./finance");
+        const table = await s.readTable(sid, "Transactions");
+        const duplicates = duplicateExpenses(data, table.rows.map((r) => expenseFromRow(r.obj)));
+        if (duplicates.some((t) => !confirmedDuplicateIds.includes(t.TransactionId))) {
+          throw new s.SheetsError("Possível despesa duplicada. Clique novamente em Guardar para rever e confirmar o aviso.", 409);
+        }
+      }
       const res = await s.upsert(sid, "Transactions", { ...row, TransferGroupId: "" }, expectedUpdatedAt);
       // Only the owner's expenses go to the owner's Google Calendar.
       if (isOwner) {

@@ -6,9 +6,10 @@ import { useEffect, useMemo, useState } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 import { z } from "zod";
+import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { useFinance, useMutate } from "@/hooks/use-finance";
-import { saveTransaction, saveTransfer } from "@/lib/finance.functions";
+import { checkExpenseDuplicates, saveTransaction, saveTransfer } from "@/lib/finance.functions";
 import { PageHeader, Panel } from "@/components/app/ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { paymentMethods, RECURRENCES, type Transaction } from "@/lib/schema";
-import { fmtDate, fmtEUR, newId, todayLisbon } from "@/lib/finance";
+import { duplicateExpenses, type ExpenseCandidate, fmtDate, fmtEUR, newId, todayLisbon } from "@/lib/finance";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/nova")({
@@ -56,11 +57,11 @@ function NewTx() {
   const editing = d?.transactions.find((t) => t.TransactionId === id && t.Type !== "Transferência");
   if (!d) return null;
   if (id && !editing) return <p className="text-sm text-muted-foreground">Movimentação não encontrada.</p>;
-  return <TxForm key={id ?? "new"} editing={editing} />;
+  return <TxForm key={id ?? "new"} editing={editing} d={d} />;
 }
 
-function TxForm({ editing }: { editing: Transaction | undefined }) {
-  const d = useFinance()!;
+function TxForm({ editing, d }: { editing: Transaction | undefined; d: NonNullable<ReturnType<typeof useFinance>> }) {
+  const checkDuplicates = useServerFn(checkExpenseDuplicates);
   const nav = useNavigate();
   const tx = useMutate(useServerFn(saveTransaction), demo.saveTransaction);
   const tr = useMutate(useServerFn(saveTransfer), demo.saveTransfer);
@@ -79,13 +80,15 @@ function TxForm({ editing }: { editing: Transaction | undefined }) {
   type ErrKey = "Description" | "Amount" | "TransactionDate" | "AccountId" | "ToAccountId" | "CategoryId";
   const [errors, setErrors] = useState<Partial<Record<ErrKey, string>>>({});
   const [confirm, setConfirm] = useState<number | null>(null);
+  const [duplicates, setDuplicates] = useState<ExpenseCandidate[]>([]);
+  const [checking, setChecking] = useState(false);
   const set = (k: keyof typeof f) => (v: string) => setF((p) => ({ ...p, [k]: v, ...(k === "CategoryId" ? { SubcategoryId: "" } : {}) }));
 
   const cats = useMemo(() => d.categories.filter((c) => c.Type === kind && (c.Active || c.CategoryId === f.CategoryId)).sort((a, b) => a.Name.localeCompare(b.Name)), [d, kind, f.CategoryId]);
   const subs = d.subcategories.filter((s) => s.CategoryId === f.CategoryId && (s.Active || s.SubcategoryId === f.SubcategoryId));
   const accounts = d.accounts.filter((a) => a.Active || a.AccountId === f.AccountId);
   const statuses = kind === "Receita" ? ["Recebido", "Pendente", "Cancelado"] : kind === "Despesa" ? ["Pago", "Pendente", "Cancelado"] : ["Efetuada", "Pendente", "Cancelado"];
-  const pending = tx.pending || tr.pending;
+  const pending = tx.pending || tr.pending || checking;
 
   function changeKind(k: Kind) {
     setKind(k);
@@ -94,6 +97,7 @@ function TxForm({ editing }: { editing: Transaction | undefined }) {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (pending) return;
     const amount = Number(f.Amount.replace(/\s/g, "").replace(",", "."));
     const err: Partial<Record<ErrKey, string>> = {};
     if (!f.Description.trim()) err.Description = "Indique uma descrição.";
@@ -106,7 +110,17 @@ function TxForm({ editing }: { editing: Transaction | undefined }) {
     } else if (!f.CategoryId) err.CategoryId = "Escolha uma categoria.";
     setErrors(err);
     if (Object.keys(err).length) return;
-    setConfirm(amount);
+    setChecking(true);
+    try {
+      const candidate = { TransactionId: txId, Type: kind, Description: f.Description, Amount: amount, TransactionDate: f.TransactionDate, Status: f.Status };
+      if (kind === "Despesa") {
+        const r = isDemo() ? { ok: true as const, data: duplicateExpenses(candidate, d.transactions) } : await checkDuplicates({ data: { ...candidate, Type: "Despesa", Status: f.Status as Transaction["Status"] } });
+        if (!r.ok) { toast.error("Não foi possível verificar duplicados", { description: r.error }); return; }
+        setDuplicates(r.data);
+      } else setDuplicates([]);
+      setConfirm(amount);
+    } catch { toast.error("Não foi possível verificar duplicados. Tente novamente."); }
+    finally { setChecking(false); }
   }
 
   async function save(amount: number) {
@@ -119,6 +133,7 @@ function TxForm({ editing }: { editing: Transaction | undefined }) {
           Status: f.Status as Transaction["Status"], Nature: f.Nature as "Fixa", Recurrence: f.Recurrence as "Mensal", Notes: f.Notes,
           Attachment: kind === "Despesa" ? f.Attachment : "",
           expectedUpdatedAt: editing?.UpdatedAt,
+          confirmedDuplicateIds: duplicates.map((t) => t.TransactionId),
         }, editing ? "Movimentação atualizada no Google Sheets" : "Movimentação gravada no Google Sheets");
     if (ok) nav({ to: "/movimentacoes" });
   }
@@ -182,16 +197,21 @@ function TxForm({ editing }: { editing: Transaction | undefined }) {
       <AlertDialog open={confirm !== null} onOpenChange={(o) => !o && setConfirm(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar gravação?</AlertDialogTitle>
+            <AlertDialogTitle>{duplicates.length ? "Possível despesa duplicada" : "Confirmar gravação?"}</AlertDialogTitle>
             <AlertDialogDescription>
               {kind}: {f.Description} — {fmtEUR(confirm ?? 0)} em {f.TransactionDate ? fmtDate(f.TransactionDate) : ""}
               {kind !== "Transferência" && <> · {d.categories.find((c) => c.CategoryId === f.CategoryId)?.Name ?? ""}</>}
               {" "}· {d.accounts.find((a) => a.AccountId === f.AccountId)?.Name ?? ""} · {f.Status}
             </AlertDialogDescription>
+            {duplicates.length > 0 && <div role="alert" className="space-y-2 border-l-2 border-expense pl-3 text-sm">
+              <p>Já existem despesas com o mesmo valor na mesma data:</p>
+              <ul className="space-y-1">{duplicates.map((t) => <li key={t.TransactionId}>{t.Description} · {fmtEUR(Number(t.Amount))} · {fmtDate(t.TransactionDate)}</li>)}</ul>
+              <p>Deseja guardar esta despesa mesmo assim?</p>
+            </div>}
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Rever</AlertDialogCancel>
-            <AlertDialogAction onClick={() => confirm !== null && save(confirm)}>Confirmar e guardar</AlertDialogAction>
+            <AlertDialogAction onClick={() => confirm !== null && save(confirm)}>{duplicates.length ? "Guardar mesmo assim" : "Confirmar e guardar"}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

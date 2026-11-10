@@ -17,6 +17,21 @@ export function accountBalance(acc: Account, txs: Transaction[]) {
 
 export const round = (n: number) => Math.round(n * 100) / 100;
 
+export type ExpenseCandidate = { TransactionId: string; Type: string; Description: string; TransactionDate: string; Status: string; Amount: number | string };
+
+/** A possible duplicate is another non-cancelled expense with the same date and cents. */
+export function duplicateExpenses(candidate: ExpenseCandidate, existing: ExpenseCandidate[]) {
+  if (candidate.Type !== "Despesa" || candidate.Status === "Cancelado") return [];
+  const cents = (amount: number | string) => Math.round(Number(String(amount).replace(",", ".")) * 100);
+  return existing.filter((t) => t.TransactionId !== candidate.TransactionId && t.Type === "Despesa" &&
+    t.Status !== "Cancelado" && t.TransactionDate === candidate.TransactionDate && cents(t.Amount) === cents(candidate.Amount));
+}
+
+export function expenseFromRow(r: Record<string, string | undefined>): ExpenseCandidate {
+  return { TransactionId: r["TransactionId"] ?? "", Type: r["Type"] ?? "", Description: r["Description"] ?? "",
+    TransactionDate: r["TransactionDate"] ?? "", Status: r["Status"] ?? "", Amount: r["Amount"] ?? "0" };
+}
+
 /** Income/expense totals for a month. Transfers are never income or expense. */
 export function monthSummary(txs: Transaction[], month: string) {
   let income = 0, expense = 0, pendingIncome = 0, pendingExpense = 0;

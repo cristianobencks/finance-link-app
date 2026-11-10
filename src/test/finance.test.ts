@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accountBalance, monthSummary, budgetSpent } from "@/lib/finance";
+import { accountBalance, monthSummary, budgetSpent, duplicateExpenses } from "@/lib/finance";
 import type { Account, Transaction } from "@/lib/schema";
 
 const tx = (p: Partial<Transaction>): Transaction => ({
@@ -20,6 +20,18 @@ const data = [
 ];
 
 describe("finance rules", () => {
+  it("flags the same amount on the same date even with a different description or account", () => {
+    const candidate = tx({ TransactionId: "new", Amount: 86.10, TransactionDate: "2026-11-10" });
+    expect(duplicateExpenses(candidate, [tx({ TransactionId: "old", Amount: 86.1, TransactionDate: "2026-11-10", Description: "Outra descrição", AccountId: "a2" })]).map((t) => t.TransactionId)).toEqual(["old"]);
+  });
+  it("never flags expenses from another date", () => {
+    expect(duplicateExpenses(tx({ Amount: 86.10, TransactionDate: "2026-11-10" }), [tx({ Amount: 86.10, TransactionDate: "2026-11-09" }), tx({ Amount: 86.10, TransactionDate: "2026-11-11" })])).toEqual([]);
+  });
+  it("does not flag different amounts, income, transfers, cancelled expenses or itself", () => {
+    const candidate = tx({ TransactionId: "same", Amount: 86.10 });
+    expect(duplicateExpenses(candidate, [candidate, tx({ Amount: 86.11 }), tx({ Type: "Receita", Amount: 86.10 }), tx({ Type: "Transferência", Amount: 86.10 }), tx({ Status: "Cancelado", Amount: 86.10 })])).toEqual([]);
+    expect(duplicateExpenses({ ...candidate, Type: "Receita" }, [tx({ Amount: 86.10 })])).toEqual([]);
+  });
   it("monthly result counts only settled income minus settled expenses", () => {
     const s = monthSummary(data, "2026-10");
     expect(s.income).toBe(2000);
