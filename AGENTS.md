@@ -10,6 +10,7 @@
 <!-- LOVABLE:END -->
 
 ## Architecture rules
+- Duplicate expense checks share the same-date/same-cent rule in finance.ts; web saves recheck the caller's sheet and Telegram confirmations keep expiring, chat/user-bound drafts in that sheet's Settings with stable transaction IDs. Why: require explicit consent without a parallel financial store or retry duplicates.
 - Dashboard market quotes use independent, public read-only server fetches with short-lived memory caching; never write them to Sheets or include them in finance totals. Why: informational prices must not slow or alter personal financial data.
 - Google Sheets (via the Lovable connector gateway, server-only in `src/lib/sheets.server.ts`) is the single source of truth for financial data; Lovable Cloud is used only for sign-in. Why: user requirement — no parallel finance database.
 - Columns are resolved by header name and records are upserted by a client-generated stable ID. Why: tolerate column reordering and make retries idempotent (no duplicates).

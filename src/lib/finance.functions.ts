@@ -84,7 +84,7 @@ export const getFinanceData = createServerFn({ method: "POST" })
         accounts: rows("Accounts").map((r) => ({ ...r, OpeningBalance: num(r.OpeningBalance), Active: bool(r.Active) })) as FinanceData["accounts"],
         budgets: rows("Budgets").map((r) => ({ ...r, BudgetAmount: num(r.BudgetAmount) })) as FinanceData["budgets"],
         settings: Object.fromEntries(
-          rows("Settings").filter((r) => r.SettingKey !== "OwnerUserId" && r.SettingKey !== "AllowedEmails" && !/^(Sheet|Telegram|TgCode):/.test(r.SettingKey ?? "")).map((r) => [r.SettingKey, r.SettingValue]),
+          rows("Settings").filter((r) => r.SettingKey !== "OwnerUserId" && r.SettingKey !== "AllowedEmails" && !/^(Sheet|Telegram|TgCode|TgPending):/.test(r.SettingKey ?? "")).map((r) => [r.SettingKey, r.SettingValue]),
         ),
       };
     });

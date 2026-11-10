@@ -4,6 +4,7 @@ import { z } from "zod";
 
 const updateSchema = z.object({
   update_id: z.number(),
+  callback_query: z.object({ id: z.string(), data: z.string().max(64), message: z.object({ chat: z.object({ id: z.number() }) }) }).optional(),
   message: z.object({ chat: z.object({ id: z.number() }), text: z.string().max(1000).optional(),
     caption: z.string().max(1000).optional(),
     photo: z.array(z.object({ file_id: z.string(), file_size: z.number().optional() })).optional(),
@@ -25,6 +26,15 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
           return new Response("Unauthorized", { status: 401 });
         }
         const parsed = updateSchema.safeParse(await request.json().catch(() => null));
+        if (parsed.success && parsed.data.callback_query) {
+          const cb = parsed.data.callback_query;
+          await t.tg("answerCallbackQuery", { callback_query_id: cb.id });
+          if (/^(confirm|cancel):tg-[-\d]+$/.test(cb.data)) {
+            try { await handle(parsed.data.update_id, cb.message.chat.id, `/${cb.data.replace(":", " ")}`); }
+            catch (e) { console.error("Telegram confirmation failed", e); await t.reply(cb.message.chat.id, "Não consegui concluir a confirmação. Tente novamente."); }
+          }
+          return Response.json({ ok: true });
+        }
         const msg = parsed.success ? parsed.data.message : undefined;
         if (!parsed.success || !msg) return Response.json({ ok: true });
         const chatId = msg.chat.id;
@@ -68,6 +78,14 @@ async function handle(updateId: number, chatId: number, text: string, file?: TgF
 
   const userId = get(`Telegram:${chatId}`);
   if (!userId) return t.reply(chatId, "👋 Este chat ainda não está ligado. No EvoluaX vá a Configurações → Registo rápido via Telegram, gere um código e envie-o aqui.");
+  const confirmation = /^\/(confirm|cancel) (tg-[-\d]+)$/.exec(text.trim());
+  if (confirmation) {
+    const isOwner = get("OwnerUserId") === userId;
+    const sid = isOwner ? master : get(`Sheet:${userId}`);
+    const txId = confirmation[2];
+    if (!sid || !txId) return t.reply(chatId, "A sua folha não está disponível.");
+    return (await import("@/lib/expense-confirmation.server")).confirmTelegramExpense(sid, chatId, userId, txId, confirmation[1] === "cancel", isOwner);
+  }
   if (/^\/(start|ajuda|help)/i.test(text.trim())) {
     return t.reply(chatId, "Envie: <code>valor descrição</code>\nEx.: <code>18,50 almoço</code>\nAcrescente <code>pendente</code> para ficar por pagar (vai para a agenda).");
   }
@@ -96,6 +114,7 @@ async function handle(updateId: number, chatId: number, text: string, file?: TgF
     PaymentMethod: "Outro", Status: exp.pending ? "Pendente" : "Pago", Nature: "Variável",
     Recurrence: "Não recorrente", Notes: "Registado via Telegram", TransferGroupId: "",
   };
+  if (await (await import("@/lib/expense-confirmation.server")).requestExpenseConfirmation(sid, chatId, userId, tx, all.Transactions.rows.map((r) => r.obj))) return;
   await s.upsert(sid, "Transactions", tx);
   if (isOwner && exp.pending) {
     try { await (await import("@/lib/calendar.server")).syncExpenseEvent(tx as never); } catch (e) { console.error("Calendar sync failed", e); }
@@ -148,6 +167,7 @@ async function handleFile(updateId: number, chatId: number, userId: string, capt
     PaymentMethod: "Outro", Status: pending ? "Pendente" : "Pago", Nature: "Variável",
     Recurrence: "Não recorrente", Notes: "Lido de documento via Telegram", TransferGroupId: "", Attachment: attachment,
   };
+  if (await (await import("@/lib/expense-confirmation.server")).requestExpenseConfirmation(sid, chatId, userId, tx, all.Transactions.rows.map((r) => r.obj))) return;
   await s.upsert(sid, "Transactions", tx);
   if (isOwner && pending) {
     try { await (await import("@/lib/calendar.server")).syncExpenseEvent(tx as never); } catch (e) { console.error("Calendar sync failed", e); }
